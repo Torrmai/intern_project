@@ -43,14 +43,39 @@ int hw_timestamping;
 
 #define TICKS_PER_CYCLE_SHIFT 16
 static uint64_t ticks_per_cycle_mult;
+static inline void
+decode_ip(const uint32_t ip_addr){
+	printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+		(uint8_t)(ip_addr & 0xff),
+		(uint8_t)((ip_addr >> 8)&0xff),
+		(uint8_t)((ip_addr >> 16)&0xff),
+		(uint8_t)((ip_addr >> 24) & 0xff)
+	);
+}
 void
 print_decode_packet(struct rte_mbuf *m)
 {
+	uint16_t eth_type;
+	int l2_len;
 	struct rte_ether_hdr *eth_hdr;
 	struct rte_ipv4_hdr *ipv4_hdr;
-	ipv4_hdr = rte_pktmbuf_mtod_offset(m, struct rte_ipv4_hdr *, sizeof(struct rte_ether_hdr));
-	printf("src_addr: %d\n",ipv4_hdr->src_addr);
-    printf("ttl: %d\n", ipv4_hdr->time_to_live);
+	eth_hdr = rte_pktmbuf_mtod(m, struct rte_ether_hdr *);
+	eth_type = rte_be_to_cpu_16(eth_hdr->ether_type);
+	l2_len = sizeof(struct rte_ether_hdr);
+	//make sure that it is a right packet type to decode
+	switch (eth_type)
+	{
+	case RTE_ETHER_TYPE_IPV4:
+		printf("This is ipv4 packet\n");
+		ipv4_hdr = (struct rte_ipv4_hdr *)((char *)eth_hdr + l2_len);
+		decode_ip(ipv4_hdr->src_addr);
+		printf(" ---> ");
+		decode_ip(ipv4_hdr->dst_addr);
+		printf("\n");
+		break;
+	default:
+		break;
+	}
 	clear();
 }
 /*
