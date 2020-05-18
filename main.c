@@ -73,8 +73,21 @@ print_decode_packet(struct rte_mbuf *m)
 		decode_ip(ipv4_hdr->dst_addr);
 		printf("\n");
 		printf(" --> ");
-		printf("protocol(next layer): %d",ipv4_hdr->next_proto_id);
-		printf("\n");
+		if(ipv4_hdr->next_proto_id == 0x01){
+			printf("protocol(next layer): ICMP\n");
+		}
+		else if(ipv4_hdr->next_proto_id == 0x02){
+			printf("protocol(next layer): IGMP\n");
+		}
+		else if(ipv4_hdr->next_proto_id == 0x11){
+			printf("protocol(next layer): UDP\n");
+		}
+		else if(ipv4_hdr->next_proto_id == 0x06){
+			printf("protocol(next layer): TCP\n");
+		}
+		else{
+			printf("protocol(next layer): %d (Will add into data base later.....)\n",ipv4_hdr->next_proto_id);
+		}
 		break;
 	default:
 		break;
