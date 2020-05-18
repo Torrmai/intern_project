@@ -72,11 +72,13 @@ print_decode_packet(struct rte_mbuf *m)
 		printf(" ---> ");
 		decode_ip(ipv4_hdr->dst_addr);
 		printf("\n");
+		printf(" --> ");
+		printf("protocol(next layer): %d",ipv4_hdr->next_proto_id);
+		printf("\n");
 		break;
 	default:
 		break;
 	}
-	clear();
 }
 /*
  * Initialises a given port using global settings and with the rx buffers
