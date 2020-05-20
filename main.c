@@ -4,6 +4,7 @@
 
 
 #include <stdio.h>
+#include <signal.h>
 #include <stdint.h>
 #include <inttypes.h>
 #include <getopt.h>
@@ -40,9 +41,37 @@ static struct {
 } latency_numbers;
 
 int hw_timestamping;
+void initHandler(int);
 
 #define TICKS_PER_CYCLE_SHIFT 16
 static uint64_t ticks_per_cycle_mult;
+void
+initHandler(int sig){
+	char c;
+	signal(sig, SIG_IGN);
+	printf("Are you sure to quit? [y/N] ");
+	c = getchar();
+	if (c == 'y' || c == 'Y')
+	{
+		printf("Bye.....\n");
+		exit(0);
+	}
+	else
+		signal(SIGINT,initHandler);
+	
+}
+static inline void
+decode_ipv6(const uint8_t ip_addr[])
+{
+	for (int i = 0; i < 8; i=i+2)
+	{
+		/* code */
+		uint16_t tmp = ip_addr[i]*ip_addr[i+1];
+		printf("%x",tmp);
+		printf(" : ");
+	}
+	printf("\n");
+}
 static inline void
 decode_ip(const uint32_t ip_addr){
 	printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
@@ -59,6 +88,7 @@ print_decode_packet(struct rte_mbuf *m)
 	int l2_len;
 	struct rte_ether_hdr *eth_hdr;
 	struct rte_ipv4_hdr *ipv4_hdr;
+	struct rte_ipv6_hdr *ipv6_hdr;
 	eth_hdr = rte_pktmbuf_mtod(m, struct rte_ether_hdr *);
 	eth_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 	l2_len = sizeof(struct rte_ether_hdr);
@@ -88,6 +118,11 @@ print_decode_packet(struct rte_mbuf *m)
 		else{
 			printf("protocol(next layer): %d (Will add into data base later.....)\n",ipv4_hdr->next_proto_id);
 		}
+		break;
+	case RTE_ETHER_TYPE_IPV6:
+		printf("This is ipv6 packet\n");
+		ipv6_hdr = (struct rte_ipv6_hdr *)((char *)eth_hdr + l2_len);
+		decode_ipv6(ipv6_hdr->src_addr);
 		break;
 	default:
 		break;
@@ -308,6 +343,7 @@ main(int argc, char *argv[])
 			"App uses only 1 lcore\n");
 
 	/* call lcore_main on master core only */
+	signal(SIGINT,initHandler);
 	lcore_main();
 	return 0;
 }
