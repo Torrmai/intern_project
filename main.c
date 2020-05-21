@@ -39,6 +39,11 @@ static struct {
 	uint64_t total_queue_cycles;
 	uint64_t total_pkts;
 } latency_numbers;
+struct ipv4_data
+{
+	char *ip_addr;
+	int rep;
+};
 
 int hw_timestamping;
 void initHandler(int);
