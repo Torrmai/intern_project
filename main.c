@@ -97,7 +97,10 @@ print_decode_packet(struct rte_mbuf *m)
 	struct rte_ether_hdr *eth_hdr;
 	struct rte_ipv4_hdr *ipv4_hdr;
 	struct rte_ipv6_hdr *ipv6_hdr;
-	struct rte_tcp_hdr *tcp_hdr;
+	//may be it can solve "Segmentation fault?"
+	struct rte_tcp_hdr *tcp_hdr_v4;
+	struct rte_tcp_hdr *tcp_hdr_v6;
+
 	eth_hdr = rte_pktmbuf_mtod(m, struct rte_ether_hdr *);
 	eth_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 	l2_len = sizeof(struct rte_ether_hdr);
@@ -124,8 +127,8 @@ print_decode_packet(struct rte_mbuf *m)
 		}
 		else if(ipv4_hdr->next_proto_id == 0x06){
 			printf("protocol(next layer): TCP\n");
-			tcp_hdr = (struct rte_tcp_hdr *)((char *)ipv4_hdr + l3_len);
-			printf(" %ld ---> %ld :port travel\n",tcp_hdr->src_port,tcp_hdr->dst_port);
+			tcp_hdr_v4 = (struct rte_tcp_hdr *)((char *)ipv4_hdr + l3_len);
+			printf(" %ld ---> %ld :port travel\n",tcp_hdr_v4->src_port,tcp_hdr_v4->dst_port);
 		}
 		else{
 			printf("protocol(next layer): %d (Will add into data base later.....)\n",ipv4_hdr->next_proto_id);
@@ -144,8 +147,8 @@ print_decode_packet(struct rte_mbuf *m)
 		{
 		case 0x06:
 			printf("TCP\n");
-			tcp_hdr = (struct rte_tcp_hdr *)((char *)ipv4_hdr + 1);
-			printf(" %ld ---> %ld :port travel\n",tcp_hdr->src_port,tcp_hdr->dst_port);
+			tcp_hdr_v6 = (struct rte_tcp_hdr *)((char *)ipv6_hdr + l3_len);
+			printf(" %ld ---> %ld :port travel\n",tcp_hdr_v6->src_port,tcp_hdr_v6->dst_port);
 			break;
 		case 0x11:
 			printf("UDP\n");
