@@ -144,8 +144,8 @@ print_decode_packet(struct rte_mbuf *m)
 		{
 		case 0x06:
 			printf("TCP\n");
-			// tcp_hdr = (struct rte_tcp_hdr *)((char *)ipv4_hdr + l3_len);
-			// printf(" %ld ---> %ld :port travel\n",tcp_hdr->src_port,tcp_hdr->dst_port);
+			tcp_hdr = (struct rte_tcp_hdr *)((char *)ipv4_hdr + 1);
+			printf(" %ld ---> %ld :port travel\n",tcp_hdr->src_port,tcp_hdr->dst_port);
 			break;
 		case 0x11:
 			printf("UDP\n");
