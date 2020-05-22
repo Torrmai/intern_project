@@ -72,13 +72,12 @@ decode_ipv6(const uint8_t ip_addr[])
 	for (int i = 0; i < 16; i++)
 	{
 		/* code */
-		uint16_t tmp = ip_addr[i]*ip_addr[i+1];
+		uint16_t tmp = ip_addr[i];
 		printf("%02x",tmp);
-		if(i%2 == 1){
-			printf(" : ");
+		if(i%2 == 1 && i < 15){
+			printf(":");
 		}
 	}
-	printf("\n");
 }
 static inline void
 decode_ip(const uint32_t ip_addr){
@@ -136,6 +135,9 @@ print_decode_packet(struct rte_mbuf *m)
 		printf("This is ipv6 packet\n");
 		ipv6_hdr = (struct rte_ipv6_hdr *)((char *)eth_hdr + l2_len);
 		decode_ipv6(ipv6_hdr->src_addr);
+		printf(" --> ");
+		decode_ipv6(ipv6_hdr->dst_addr);
+		printf("\n");
 		break;
 	default:
 		break;
