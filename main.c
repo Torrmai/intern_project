@@ -15,6 +15,7 @@
 #include <rte_mbuf.h>
 #include <rte_ether.h>
 #include <rte_ip.h>
+#include <rte_tcp.h>
 
 #define clear() printf("\033[H\033[J")
 
@@ -68,12 +69,14 @@ initHandler(int sig){
 static inline void
 decode_ipv6(const uint8_t ip_addr[])
 {
-	for (int i = 0; i < 8; i=i+2)
+	for (int i = 0; i < 16; i++)
 	{
 		/* code */
 		uint16_t tmp = ip_addr[i]*ip_addr[i+1];
-		printf("%x",tmp);
-		printf(" : ");
+		printf("%02x",tmp);
+		if(i%2 == 1){
+			printf(" : ");
+		}
 	}
 	printf("\n");
 }
@@ -91,9 +94,11 @@ print_decode_packet(struct rte_mbuf *m)
 {
 	uint16_t eth_type;
 	int l2_len;
+	int l3_len;
 	struct rte_ether_hdr *eth_hdr;
 	struct rte_ipv4_hdr *ipv4_hdr;
 	struct rte_ipv6_hdr *ipv6_hdr;
+	struct rte_tcp_hdr *tcp_hdr;
 	eth_hdr = rte_pktmbuf_mtod(m, struct rte_ether_hdr *);
 	eth_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 	l2_len = sizeof(struct rte_ether_hdr);
@@ -102,6 +107,7 @@ print_decode_packet(struct rte_mbuf *m)
 	{
 	case RTE_ETHER_TYPE_IPV4:
 		printf("This is ipv4 packet\n");
+		l3_len = sizeof(struct rte_ipv4_hdr);
 		ipv4_hdr = (struct rte_ipv4_hdr *)((char *)eth_hdr + l2_len);
 		decode_ip(ipv4_hdr->src_addr);
 		printf(" ---> ");
@@ -119,6 +125,8 @@ print_decode_packet(struct rte_mbuf *m)
 		}
 		else if(ipv4_hdr->next_proto_id == 0x06){
 			printf("protocol(next layer): TCP\n");
+			tcp_hdr = (struct rte_tcp_hdr *)((char *)ipv4_hdr + l3_len);
+			printf(" %ld ---> %ld :port travel\n",tcp_hdr->src_port,tcp_hdr->dst_port);
 		}
 		else{
 			printf("protocol(next layer): %d (Will add into data base later.....)\n",ipv4_hdr->next_proto_id);
