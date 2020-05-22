@@ -133,11 +133,29 @@ print_decode_packet(struct rte_mbuf *m)
 		break;
 	case RTE_ETHER_TYPE_IPV6:
 		printf("This is ipv6 packet\n");
+		l3_len = sizeof(struct rte_ipv6_hdr);
 		ipv6_hdr = (struct rte_ipv6_hdr *)((char *)eth_hdr + l2_len);
 		decode_ipv6(ipv6_hdr->src_addr);
 		printf(" --> ");
 		decode_ipv6(ipv6_hdr->dst_addr);
 		printf("\n");
+		printf(" --> next protocol: ");
+		switch (ipv6_hdr->proto)
+		{
+		case 0x06:
+			printf("TCP\n");
+			// tcp_hdr = (struct rte_tcp_hdr *)((char *)ipv4_hdr + l3_len);
+			// printf(" %ld ---> %ld :port travel\n",tcp_hdr->src_port,tcp_hdr->dst_port);
+			break;
+		case 0x11:
+			printf("UDP\n");
+			break;
+		case 0x3A:
+			printf("ICMP for ipV6\n");
+			break;
+		default:
+			break;
+		}
 		break;
 	default:
 		break;
