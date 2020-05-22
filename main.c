@@ -16,6 +16,7 @@
 #include <rte_ether.h>
 #include <rte_ip.h>
 #include <rte_tcp.h>
+#include <rte_udp.h>
 
 #define clear() printf("\033[H\033[J")
 
@@ -72,13 +73,12 @@ decode_ipv6(const uint8_t ip_addr[])
 	for (int i = 0; i < 16; i++)
 	{
 		/* code */
-		uint16_t tmp = ip_addr[i]*ip_addr[i+1];
+		uint16_t tmp = ip_addr[i];
 		printf("%02x",tmp);
-		if(i%2 == 1){
-			printf(" : ");
+		if(i%2 == 1 && i < 15){
+			printf(":");
 		}
 	}
-	printf("\n");
 }
 static inline void
 decode_ip(const uint32_t ip_addr){
@@ -98,7 +98,12 @@ print_decode_packet(struct rte_mbuf *m)
 	struct rte_ether_hdr *eth_hdr;
 	struct rte_ipv4_hdr *ipv4_hdr;
 	struct rte_ipv6_hdr *ipv6_hdr;
-	struct rte_tcp_hdr *tcp_hdr;
+	//may be it can solve "Segmentation fault?"
+	struct rte_tcp_hdr *tcp_hdr_v4;
+	struct rte_tcp_hdr *tcp_hdr_v6;
+
+	struct rte_udp_hdr *udp_hdr;
+
 	eth_hdr = rte_pktmbuf_mtod(m, struct rte_ether_hdr *);
 	eth_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 	l2_len = sizeof(struct rte_ether_hdr);
@@ -122,11 +127,13 @@ print_decode_packet(struct rte_mbuf *m)
 		}
 		else if(ipv4_hdr->next_proto_id == 0x11){
 			printf("protocol(next layer): UDP\n");
+			udp_hdr = (struct rte_udp_hdr *)((char*)ipv4_hdr + l3_len);
+			printf(" %ld ---> %ld :port travel\n",udp_hdr->src_port,udp_hdr->dst_port);
 		}
 		else if(ipv4_hdr->next_proto_id == 0x06){
 			printf("protocol(next layer): TCP\n");
-			tcp_hdr = (struct rte_tcp_hdr *)((char *)ipv4_hdr + l3_len);
-			printf(" %ld ---> %ld :port travel\n",tcp_hdr->src_port,tcp_hdr->dst_port);
+			tcp_hdr_v4 = (struct rte_tcp_hdr *)((char *)ipv4_hdr + l3_len);
+			printf(" %ld ---> %ld :port travel\n",tcp_hdr_v4->src_port,tcp_hdr_v4->dst_port);
 		}
 		else{
 			printf("protocol(next layer): %d (Will add into data base later.....)\n",ipv4_hdr->next_proto_id);
@@ -134,8 +141,31 @@ print_decode_packet(struct rte_mbuf *m)
 		break;
 	case RTE_ETHER_TYPE_IPV6:
 		printf("This is ipv6 packet\n");
+		l3_len = sizeof(struct rte_ipv6_hdr);
 		ipv6_hdr = (struct rte_ipv6_hdr *)((char *)eth_hdr + l2_len);
 		decode_ipv6(ipv6_hdr->src_addr);
+		printf(" --> ");
+		decode_ipv6(ipv6_hdr->dst_addr);
+		printf("\n");
+		printf(" --> next protocol: ");
+		switch (ipv6_hdr->proto)
+		{
+		case 0x06:
+			printf("TCP\n");
+			tcp_hdr_v6 = (struct rte_tcp_hdr *)((char *)ipv6_hdr + l3_len);
+			printf(" %ld ---> %ld :port travel\n",tcp_hdr_v6->src_port,tcp_hdr_v6->dst_port);
+			break;
+		case 0x11:
+			printf("UDP\n");
+			udp_hdr = (struct rte_udp_hdr *)((char*)ipv6_hdr + l3_len);
+			printf(" %ld ---> %ld :port travel\n",udp_hdr->src_port,udp_hdr->dst_port);
+			break;
+		case 0x3A:
+			printf("ICMP for ipV6\n");
+			break;
+		default:
+			break;
+		}
 		break;
 	default:
 		break;
