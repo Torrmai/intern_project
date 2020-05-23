@@ -32,6 +32,8 @@
 #define UDP 1
 #define ICMP4 2
 #define ICMP6 3
+#define IPv4 4
+#define IPv6 5
 
 static const char usage[] =
 	"%s EAL_ARGS -- [-t]\n";
@@ -68,7 +70,8 @@ initHandler(int sig){
 	if (c == 'y' || c == 'Y')
 	{
 		clear();
-		printf("These are the number of packet type which has recorded....\n");
+		printf("There are %d IPv4 packets and %d IPv6 packets......\n",basic_stat[IPv4],basic_stat[IPv6]);
+		printf("These are the number of packet type(layer 4 protocol) which has recorded....\n");
 		printf("\t- TCP: %d\n",basic_stat[TCP]);
 		printf("\t- UDP: %d\n",basic_stat[UDP]);
 		printf("\t- ICMPv4: %d\n",basic_stat[ICMP4]);
@@ -125,7 +128,7 @@ print_decode_packet(struct rte_mbuf *m)
 	switch (eth_type)
 	{
 	case RTE_ETHER_TYPE_IPV4:
-		printf("This is ipv4 packet\n");
+		basic_stat[IPv4]++;
 		l3_len = sizeof(struct rte_ipv4_hdr);
 		ipv4_hdr = (struct rte_ipv4_hdr *)((char *)eth_hdr + l2_len);
 		decode_ip(ipv4_hdr->src_addr);
@@ -157,7 +160,7 @@ print_decode_packet(struct rte_mbuf *m)
 		}
 		break;
 	case RTE_ETHER_TYPE_IPV6:
-		printf("This is ipv6 packet\n");
+		basic_stat[IPv6]++;
 		l3_len = sizeof(struct rte_ipv6_hdr);
 		ipv6_hdr = (struct rte_ipv6_hdr *)((char *)eth_hdr + l2_len);
 		decode_ipv6(ipv6_hdr->src_addr);
@@ -328,7 +331,7 @@ lcore_main(void)
 
 	printf("\nCore %u forwarding packets. [Ctrl+C to quit]\n",
 			rte_lcore_id());
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < 6; i++)
 	{
 		basic_stat[i] = 0;//init value for stat
 	}
