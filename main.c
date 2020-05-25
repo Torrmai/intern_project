@@ -84,39 +84,63 @@ initHandler(int sig){
 	
 }
 static inline void
-decode_ipv6(const uint8_t ip_addr[])
+decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],char p)
 {
+	char ipv6_addr_src[40];
+	char ipv6_addr_dst[40];
 	for (int i = 0; i < 16; i++)
 	{
-		/* code */
-		uint16_t tmp = ip_addr[i];
-		printf("%02x",tmp);
-		if(i%2 == 1 && i < 15){
-			printf(":");
+		uint16_t tmp = ip_addr_src[i];
+		if(p == 'y' || p == 'Y'){
+			printf("%02x",tmp);
+			if(i%2 == 1 && i < 15){
+				printf(":");
+			}
 		}
 	}
+	if (p == 'y' || p == 'Y')
+	{
+		printf(" -----> ");
+	}
+	for (int i = 0; i < 16; i++)
+	{
+		uint16_t tmp = ip_addr_dst[i];
+		if(p == 'y' || p == 'Y'){
+			printf("%02x",tmp);
+			if(i%2 == 1 && i < 15){
+				printf(":");
+			}
+		}
+	}
+	if(p == 'y' || p == 'Y'){
+	printf("\n");
+	}	
 }
 //for printing ipv4 addr.....
 static inline void
-decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst){
+decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,char p){
 	char* ipv4_addr_src[16];//perpare for sending to sql
-	printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
-		(uint8_t)(ip_addr_src & 0xff),
-		(uint8_t)((ip_addr_src >> 8)&0xff),
-		(uint8_t)((ip_addr_src >> 16)&0xff),
-		(uint8_t)((ip_addr_src >> 24) & 0xff)
-	);
-	printf(" -----> ");
-	printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
-		(uint8_t)(ip_addr_dst & 0xff),
-		(uint8_t)((ip_addr_dst >> 8)&0xff),
-		(uint8_t)((ip_addr_dst >> 16)&0xff),
-		(uint8_t)((ip_addr_dst >> 24) & 0xff)
-	);
-	printf("\n");
+	char* ipv4_addr_dst[16];
+	if(p == 'y' || p == 'Y')
+	{
+		printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+			(uint8_t)(ip_addr_src & 0xff),
+			(uint8_t)((ip_addr_src >> 8)&0xff),
+			(uint8_t)((ip_addr_src >> 16)&0xff),
+			(uint8_t)((ip_addr_src >> 24) & 0xff)
+		);
+		printf(" -----> ");
+		printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+			(uint8_t)(ip_addr_dst & 0xff),
+			(uint8_t)((ip_addr_dst >> 8)&0xff),
+			(uint8_t)((ip_addr_dst >> 16)&0xff),
+			(uint8_t)((ip_addr_dst >> 24) & 0xff)
+		);
+		printf("\n");
+	}
 }
 void
-print_decode_packet(struct rte_mbuf *m)
+print_decode_packet(struct rte_mbuf *m,char p)
 {
 	uint16_t eth_type;
 	int l2_len;
@@ -141,57 +165,74 @@ print_decode_packet(struct rte_mbuf *m)
 		basic_stat[IPv4]++;
 		l3_len = sizeof(struct rte_ipv4_hdr);
 		ipv4_hdr = (struct rte_ipv4_hdr *)((char *)eth_hdr + l2_len);
-		decode_ip(ipv4_hdr->src_addr,ipv4_hdr->dst_addr);
-		printf("\t--> ");
+		decode_ip(ipv4_hdr->src_addr,ipv4_hdr->dst_addr,p);
+		if(p == 'y' || p == 'Y'){
+			printf("\t--> ");
+		}
 		if(ipv4_hdr->next_proto_id == 0x01){
-			printf("protocol(next layer): ICMP\n");
+			if(p == 'y' || p == 'Y'){
+				printf("protocol(next layer): ICMP\n");
+			}
 			basic_stat[ICMP4]++;
 		}
 		else if(ipv4_hdr->next_proto_id == 0x02){
-			printf("protocol(next layer): IGMP\n");
+			if(p == 'y' || p == 'Y'){
+				printf("protocol(next layer): IGMP\n");
+			}
 		}
 		else if(ipv4_hdr->next_proto_id == 0x11){
 			basic_stat[UDP]++;
-			printf("protocol(next layer): UDP\n");
 			udp_hdr = (struct rte_udp_hdr *)((char*)ipv4_hdr + l3_len);
-			printf(" \t\t%ld ---> %ld :port travel\n",udp_hdr->src_port,udp_hdr->dst_port);
+			if(p == 'y' || p == 'Y'){
+				printf("protocol(next layer): UDP\n");
+				printf(" \t\t%ld ---> %ld :port travel\n",udp_hdr->src_port,udp_hdr->dst_port);
+			}
 		}
 		else if(ipv4_hdr->next_proto_id == 0x06){
 			basic_stat[TCP]++;
-			printf("protocol(next layer): TCP\n");
 			tcp_hdr_v4 = (struct rte_tcp_hdr *)((char *)ipv4_hdr + l3_len);
-			printf(" \t\t%ld ---> %ld :port travel\n",tcp_hdr_v4->src_port,tcp_hdr_v4->dst_port);
+			if(p == 'y' || p == 'Y'){
+				printf("protocol(next layer): TCP\n");
+				printf(" \t\t%ld ---> %ld :port travel\n",tcp_hdr_v4->src_port,tcp_hdr_v4->dst_port);
+			}
 		}
 		else{
-			printf("protocol(next layer): %d (Will add into data base later.....)\n",ipv4_hdr->next_proto_id);
+			if(p == 'y' || p == 'Y'){
+				printf("protocol(next layer): %d (Will add into data base later.....)\n",ipv4_hdr->next_proto_id);
+			}
 		}
 		break;
 	case RTE_ETHER_TYPE_IPV6:
 		basic_stat[IPv6]++;
 		l3_len = sizeof(struct rte_ipv6_hdr);
 		ipv6_hdr = (struct rte_ipv6_hdr *)((char *)eth_hdr + l2_len);
-		decode_ipv6(ipv6_hdr->src_addr);
-		printf(" --> ");
-		decode_ipv6(ipv6_hdr->dst_addr);
-		printf("\n");
-		printf(" --> next protocol: ");
+		decode_ipv6(ipv6_hdr->src_addr,ipv6_hdr->dst_addr,p);
+		if(p == 'y' || p == 'Y'){
+			printf(" --> next protocol: ");
+		}
 		switch (ipv6_hdr->proto)
 		{
 		case 0x06:
 			basic_stat[TCP]++;
-			printf("TCP\n");
 			tcp_hdr_v6 = (struct rte_tcp_hdr *)((char *)ipv6_hdr + l3_len);
-			printf(" %ld ---> %ld :port travel\n",tcp_hdr_v6->src_port,tcp_hdr_v6->dst_port);
+			if(p == 'y' || p == 'Y'){
+				printf("TCP\n");
+				printf(" %ld ---> %ld :port travel\n",tcp_hdr_v6->src_port,tcp_hdr_v6->dst_port);
+			}
 			break;
 		case 0x11:
 			basic_stat[UDP]++;
-			printf("UDP\n");
 			udp_hdr_v6 = (struct rte_udp_hdr *)((char*)ipv6_hdr + l3_len);
+			if(p == 'y' || p == 'Y'){
+			printf("UDP\n");
 			printf(" %ld ---> %ld :port travel\n",udp_hdr_v6->src_port,udp_hdr_v6->dst_port);
+			}
 			break;
 		case 0x3A:
 			basic_stat[ICMP6]++;
+			if(p == 'y' || p == 'Y'){
 			printf("ICMP for ipV6\n");
+			}
 			break;
 		default:
 			break;
@@ -324,7 +365,7 @@ static  __attribute__((noreturn)) void
 lcore_main(void)
 {
 	uint16_t port;
-
+	char is_debug;
 	struct rte_ether_hdr *eth_hdr;
 	struct rte_ipv4_hdr *ipv4_hdr;
 	int32_t i;
@@ -342,7 +383,8 @@ lcore_main(void)
 	{
 		basic_stat[i] = 0;//init value for stat
 	}
-	
+	printf("Do you want to print realtime packet detail?[y/N]: ");
+	is_debug = getchar();
 	for (;;) {
 		//Maybe I have to work around here.
 		
@@ -351,7 +393,7 @@ lcore_main(void)
 			const uint16_t nb_rx = rte_eth_rx_burst(port, 0,
 					bufs, BURST_SIZE);
 			for(i=0;i<nb_rx;i++){
-				print_decode_packet(bufs[i]);
+				print_decode_packet(bufs[i],is_debug);
 			}
 			if (unlikely(nb_rx == 0))
 				continue;
