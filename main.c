@@ -96,14 +96,24 @@ decode_ipv6(const uint8_t ip_addr[])
 		}
 	}
 }
+//for printing ipv4 addr.....
 static inline void
-decode_ip(const uint32_t ip_addr){
+decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst){
+	char* ipv4_addr_src[16];//perpare for sending to sql
 	printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
-		(uint8_t)(ip_addr & 0xff),
-		(uint8_t)((ip_addr >> 8)&0xff),
-		(uint8_t)((ip_addr >> 16)&0xff),
-		(uint8_t)((ip_addr >> 24) & 0xff)
+		(uint8_t)(ip_addr_src & 0xff),
+		(uint8_t)((ip_addr_src >> 8)&0xff),
+		(uint8_t)((ip_addr_src >> 16)&0xff),
+		(uint8_t)((ip_addr_src >> 24) & 0xff)
 	);
+	printf(" -----> ");
+	printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+		(uint8_t)(ip_addr_dst & 0xff),
+		(uint8_t)((ip_addr_dst >> 8)&0xff),
+		(uint8_t)((ip_addr_dst >> 16)&0xff),
+		(uint8_t)((ip_addr_dst >> 24) & 0xff)
+	);
+	printf("\n");
 }
 void
 print_decode_packet(struct rte_mbuf *m)
@@ -131,11 +141,8 @@ print_decode_packet(struct rte_mbuf *m)
 		basic_stat[IPv4]++;
 		l3_len = sizeof(struct rte_ipv4_hdr);
 		ipv4_hdr = (struct rte_ipv4_hdr *)((char *)eth_hdr + l2_len);
-		decode_ip(ipv4_hdr->src_addr);
-		printf(" ---> ");
-		decode_ip(ipv4_hdr->dst_addr);
-		printf("\n");
-		printf(" --> ");
+		decode_ip(ipv4_hdr->src_addr,ipv4_hdr->dst_addr);
+		printf("\t--> ");
 		if(ipv4_hdr->next_proto_id == 0x01){
 			printf("protocol(next layer): ICMP\n");
 			basic_stat[ICMP4]++;
@@ -147,13 +154,13 @@ print_decode_packet(struct rte_mbuf *m)
 			basic_stat[UDP]++;
 			printf("protocol(next layer): UDP\n");
 			udp_hdr = (struct rte_udp_hdr *)((char*)ipv4_hdr + l3_len);
-			printf(" %ld ---> %ld :port travel\n",udp_hdr->src_port,udp_hdr->dst_port);
+			printf(" \t\t%ld ---> %ld :port travel\n",udp_hdr->src_port,udp_hdr->dst_port);
 		}
 		else if(ipv4_hdr->next_proto_id == 0x06){
 			basic_stat[TCP]++;
 			printf("protocol(next layer): TCP\n");
 			tcp_hdr_v4 = (struct rte_tcp_hdr *)((char *)ipv4_hdr + l3_len);
-			printf(" %ld ---> %ld :port travel\n",tcp_hdr_v4->src_port,tcp_hdr_v4->dst_port);
+			printf(" \t\t%ld ---> %ld :port travel\n",tcp_hdr_v4->src_port,tcp_hdr_v4->dst_port);
 		}
 		else{
 			printf("protocol(next layer): %d (Will add into data base later.....)\n",ipv4_hdr->next_proto_id);
