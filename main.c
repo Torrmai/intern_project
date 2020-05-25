@@ -15,6 +15,8 @@
 #include <rte_mbuf.h>
 #include <rte_ether.h>
 #include <rte_ip.h>
+#include <rte_tcp.h>
+#include <rte_udp.h>
 
 #define clear() printf("\033[H\033[J")
 
@@ -24,6 +26,14 @@
 #define NUM_MBUFS 8191
 #define MBUF_CACHE_SIZE 250
 #define BURST_SIZE 32
+
+//index for basic stat :)
+#define TCP 0
+#define UDP 1
+#define ICMP4 2
+#define ICMP6 3
+#define IPv4 4
+#define IPv6 5
 
 static const char usage[] =
 	"%s EAL_ARGS -- [-t]\n";
@@ -39,10 +49,16 @@ static struct {
 	uint64_t total_queue_cycles;
 	uint64_t total_pkts;
 } latency_numbers;
+struct ipv4_data
+{
+	char *ip_addr;
+	int rep;
+};
 
 int hw_timestamping;
 void initHandler(int);
 
+unsigned long int basic_stat[4];//for counting number of protocol in l4
 #define TICKS_PER_CYCLE_SHIFT 16
 static uint64_t ticks_per_cycle_mult;
 void
@@ -53,6 +69,13 @@ initHandler(int sig){
 	c = getchar();
 	if (c == 'y' || c == 'Y')
 	{
+		clear();
+		printf("There are %d IPv4 packets and %d IPv6 packets......\n",basic_stat[IPv4],basic_stat[IPv6]);
+		printf("These are the number of packet type(layer 4 protocol) which has recorded....\n");
+		printf("\t- TCP: %d\n",basic_stat[TCP]);
+		printf("\t- UDP: %d\n",basic_stat[UDP]);
+		printf("\t- ICMPv4: %d\n",basic_stat[ICMP4]);
+		printf("\t- ICMPv6: %d\n",basic_stat[ICMP6]);
 		printf("Bye.....\n");
 		exit(0);
 	}
@@ -63,32 +86,51 @@ initHandler(int sig){
 static inline void
 decode_ipv6(const uint8_t ip_addr[])
 {
-	for (int i = 0; i < 8; i=i+2)
+	for (int i = 0; i < 16; i++)
 	{
 		/* code */
-		uint16_t tmp = ip_addr[i]*ip_addr[i+1];
-		printf("%x",tmp);
-		printf(" : ");
+		uint16_t tmp = ip_addr[i];
+		printf("%02x",tmp);
+		if(i%2 == 1 && i < 15){
+			printf(":");
+		}
 	}
-	printf("\n");
 }
+//for printing ipv4 addr.....
 static inline void
-decode_ip(const uint32_t ip_addr){
+decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst){
+	char* ipv4_addr_src[16];//perpare for sending to sql
 	printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
-		(uint8_t)(ip_addr & 0xff),
-		(uint8_t)((ip_addr >> 8)&0xff),
-		(uint8_t)((ip_addr >> 16)&0xff),
-		(uint8_t)((ip_addr >> 24) & 0xff)
+		(uint8_t)(ip_addr_src & 0xff),
+		(uint8_t)((ip_addr_src >> 8)&0xff),
+		(uint8_t)((ip_addr_src >> 16)&0xff),
+		(uint8_t)((ip_addr_src >> 24) & 0xff)
 	);
+	printf(" -----> ");
+	printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+		(uint8_t)(ip_addr_dst & 0xff),
+		(uint8_t)((ip_addr_dst >> 8)&0xff),
+		(uint8_t)((ip_addr_dst >> 16)&0xff),
+		(uint8_t)((ip_addr_dst >> 24) & 0xff)
+	);
+	printf("\n");
 }
 void
 print_decode_packet(struct rte_mbuf *m)
 {
 	uint16_t eth_type;
 	int l2_len;
+	int l3_len;
 	struct rte_ether_hdr *eth_hdr;
 	struct rte_ipv4_hdr *ipv4_hdr;
 	struct rte_ipv6_hdr *ipv6_hdr;
+	//may be it can solve "Segmentation fault?"
+	struct rte_tcp_hdr *tcp_hdr_v4;
+	struct rte_tcp_hdr *tcp_hdr_v6;
+
+	struct rte_udp_hdr *udp_hdr;
+	struct rte_udp_hdr *udp_hdr_v6;
+
 	eth_hdr = rte_pktmbuf_mtod(m, struct rte_ether_hdr *);
 	eth_type = rte_be_to_cpu_16(eth_hdr->ether_type);
 	l2_len = sizeof(struct rte_ether_hdr);
@@ -96,33 +138,64 @@ print_decode_packet(struct rte_mbuf *m)
 	switch (eth_type)
 	{
 	case RTE_ETHER_TYPE_IPV4:
-		printf("This is ipv4 packet\n");
+		basic_stat[IPv4]++;
+		l3_len = sizeof(struct rte_ipv4_hdr);
 		ipv4_hdr = (struct rte_ipv4_hdr *)((char *)eth_hdr + l2_len);
-		decode_ip(ipv4_hdr->src_addr);
-		printf(" ---> ");
-		decode_ip(ipv4_hdr->dst_addr);
-		printf("\n");
-		printf(" --> ");
+		decode_ip(ipv4_hdr->src_addr,ipv4_hdr->dst_addr);
+		printf("\t--> ");
 		if(ipv4_hdr->next_proto_id == 0x01){
 			printf("protocol(next layer): ICMP\n");
+			basic_stat[ICMP4]++;
 		}
 		else if(ipv4_hdr->next_proto_id == 0x02){
 			printf("protocol(next layer): IGMP\n");
 		}
 		else if(ipv4_hdr->next_proto_id == 0x11){
+			basic_stat[UDP]++;
 			printf("protocol(next layer): UDP\n");
+			udp_hdr = (struct rte_udp_hdr *)((char*)ipv4_hdr + l3_len);
+			printf(" \t\t%ld ---> %ld :port travel\n",udp_hdr->src_port,udp_hdr->dst_port);
 		}
 		else if(ipv4_hdr->next_proto_id == 0x06){
+			basic_stat[TCP]++;
 			printf("protocol(next layer): TCP\n");
+			tcp_hdr_v4 = (struct rte_tcp_hdr *)((char *)ipv4_hdr + l3_len);
+			printf(" \t\t%ld ---> %ld :port travel\n",tcp_hdr_v4->src_port,tcp_hdr_v4->dst_port);
 		}
 		else{
 			printf("protocol(next layer): %d (Will add into data base later.....)\n",ipv4_hdr->next_proto_id);
 		}
 		break;
 	case RTE_ETHER_TYPE_IPV6:
-		printf("This is ipv6 packet\n");
+		basic_stat[IPv6]++;
+		l3_len = sizeof(struct rte_ipv6_hdr);
 		ipv6_hdr = (struct rte_ipv6_hdr *)((char *)eth_hdr + l2_len);
 		decode_ipv6(ipv6_hdr->src_addr);
+		printf(" --> ");
+		decode_ipv6(ipv6_hdr->dst_addr);
+		printf("\n");
+		printf(" --> next protocol: ");
+		switch (ipv6_hdr->proto)
+		{
+		case 0x06:
+			basic_stat[TCP]++;
+			printf("TCP\n");
+			tcp_hdr_v6 = (struct rte_tcp_hdr *)((char *)ipv6_hdr + l3_len);
+			printf(" %ld ---> %ld :port travel\n",tcp_hdr_v6->src_port,tcp_hdr_v6->dst_port);
+			break;
+		case 0x11:
+			basic_stat[UDP]++;
+			printf("UDP\n");
+			udp_hdr_v6 = (struct rte_udp_hdr *)((char*)ipv6_hdr + l3_len);
+			printf(" %ld ---> %ld :port travel\n",udp_hdr_v6->src_port,udp_hdr_v6->dst_port);
+			break;
+		case 0x3A:
+			basic_stat[ICMP6]++;
+			printf("ICMP for ipV6\n");
+			break;
+		default:
+			break;
+		}
 		break;
 	default:
 		break;
@@ -265,6 +338,11 @@ lcore_main(void)
 
 	printf("\nCore %u forwarding packets. [Ctrl+C to quit]\n",
 			rte_lcore_id());
+	for (int i = 0; i < 6; i++)
+	{
+		basic_stat[i] = 0;//init value for stat
+	}
+	
 	for (;;) {
 		//Maybe I have to work around here.
 		
