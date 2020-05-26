@@ -2,16 +2,17 @@
 #include <sqlite3.h>
 #include <string.h>
 #include <stdlib.h>
+#include "datainterface.h"
 #define UPDATE 8
 #define INSERT 9
 int i = 1;
 int ch;
 static int callback_printdata(void *data,int argc,char **argv,char **azColName)
 {
-    printf("data len: %d\n",argc);
+
     for (int i = 0; i < argc; i++)
     {
-        printf("%s = %s\n",azColName[i],argv[i] ? argv[i]:"NULL");
+        printf("\t--->%s = %s\n",azColName[i],argv[i] ? argv[i]:"NULL");
     }
     printf("\n");
     return 0;
@@ -28,7 +29,19 @@ static int fetch_data(void *data,int argc,char **argv,char **colname){
    }
    return 0;
 }
-void update_data(sqlite3 *db,char *data,char *com){
+void conclude_stat(sqlite3 *db){
+   int stat;
+   const char *data = "Rank: ";
+   char *err = 0;
+   char *comm = "select ip_addr,count from ip_stat "\
+                "order by count DESC limit 10";
+   stat = sqlite3_exec(db,comm,callback_printdata,0,&err);
+   if(stat != SQLITE_OK){
+      printf("err: %s\n",err);
+   }
+}
+void update_data(sqlite3 *db,char *data){
+   const char* com[100];
    sprintf(com,"update ip_stat set count = count + 1 where ip_addr = '%s'",data);
    int stat;
    char *err = 0;
@@ -45,7 +58,8 @@ void update_data(sqlite3 *db,char *data,char *com){
    }
    sprintf(com,"");
 }
-int data_choice(sqlite3 *db,char *ip,char *sqlcom){
+int data_choice(sqlite3 *db,char *ip){
+   const char sqlcom[100];
    int stat;
    char *err = 0;
    sprintf(sqlcom,"select count(*) from ip_stat where ip_addr = '%s'",ip);
@@ -62,16 +76,24 @@ int data_choice(sqlite3 *db,char *ip,char *sqlcom){
    }
    sprintf(sqlcom,"");
    if(ch == 1){
-      return INSERT;
+      insert_data(db,ip);
    }
    else{
-      return UPDATE;
+      update_data(db,ip);
    }
 }
-void insert_data(sqlite3 *db,char *sqlcom)
+void insert_data(sqlite3 *db,char *ip)
 {
+   const char sqlcom[100];
+   const char tmp[100];
    int stat;
    char *err = 0;
+   sprintf(tmp,"insert into ip_stat (id,ip_addr,count)\n");
+   strcat(sqlcom,tmp);
+   sprintf(tmp,"select * from (select %d,'%s',1) as tmp\n",i,ip);
+   strcat(sqlcom,tmp);
+   sprintf(tmp,"where not exists (select ip_addr from ip_stat where ip_addr = '%s') limit 1\n",ip);
+   strcat(sqlcom,tmp);
    stat = sqlite3_exec(db,sqlcom,callback_printdata,0,&err);
    if (stat != SQLITE_OK)
    {
@@ -83,44 +105,6 @@ void insert_data(sqlite3 *db,char *sqlcom)
    {
       i++;
    }
-}
-int main(int argc, char* argv[]) {
-   sqlite3 *db;
-   char *zErrMsg = 0;
-   int rc;
-   char *sqlcom = (char *)calloc(100 ,sizeof(char));
-   char *tmp = (char*)calloc(100,sizeof(char));
-   const char* data = "wtf";
-   rc = sqlite3_open("test.db", &db);
-
-   if( rc ) {
-      fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
-      return(0);
-   } else {
-      fprintf(stderr, "Opened database successfully\n");
-   }
-   
-   while (1)
-   {
-      char *ip;
-      scanf("%s",ip);
-      int k = data_choice(db,ip,sqlcom);
-      if (k == UPDATE)
-      {
-         update_data(db,ip,sqlcom);
-      }
-      else
-      {
-         sprintf(tmp,"insert into ip_stat (id,ip_addr,count)\n");
-         strcat(sqlcom,tmp);
-         sprintf(tmp,"select * from (select %d,'%s',1) as tmp\n",i,ip);
-         strcat(sqlcom,tmp);
-         sprintf(tmp,"where not exists (select ip_addr from ip_stat where ip_addr = '%s') limit 1\n",ip);
-         strcat(sqlcom,tmp);
-         insert_data(db,sqlcom);
-         sprintf(sqlcom,"");
-         sprintf(tmp,"");  
-      }
-   }
-   sqlite3_close(db);
+   sprintf(sqlcom,"");
+   sprintf(tmp,"");  
 }

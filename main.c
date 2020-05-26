@@ -2,7 +2,7 @@
  * Copyright(c) 2010-2015 Intel Corporation
  */
 
-
+#include <sqlite3.h>
 #include <stdio.h>
 #include <signal.h>
 #include <stdint.h>
@@ -208,7 +208,7 @@ print_decode_packet(struct rte_mbuf *m,char p)
 		ipv6_hdr = (struct rte_ipv6_hdr *)((char *)eth_hdr + l2_len);
 		decode_ipv6(ipv6_hdr->src_addr,ipv6_hdr->dst_addr,p);
 		if(p == 'y' || p == 'Y'){
-			printf(" --> next protocol: ");
+			printf("\t--> next protocol: ");
 		}
 		switch (ipv6_hdr->proto)
 		{
@@ -217,7 +217,7 @@ print_decode_packet(struct rte_mbuf *m,char p)
 			tcp_hdr_v6 = (struct rte_tcp_hdr *)((char *)ipv6_hdr + l3_len);
 			if(p == 'y' || p == 'Y'){
 				printf("TCP\n");
-				printf(" %ld ---> %ld :port travel\n",tcp_hdr_v6->src_port,tcp_hdr_v6->dst_port);
+				printf("\t\t%ld ---> %ld :port travel\n",tcp_hdr_v6->src_port,tcp_hdr_v6->dst_port);
 			}
 			break;
 		case 0x11:
@@ -225,7 +225,7 @@ print_decode_packet(struct rte_mbuf *m,char p)
 			udp_hdr_v6 = (struct rte_udp_hdr *)((char*)ipv6_hdr + l3_len);
 			if(p == 'y' || p == 'Y'){
 			printf("UDP\n");
-			printf(" %ld ---> %ld :port travel\n",udp_hdr_v6->src_port,udp_hdr_v6->dst_port);
+			printf("\t\t%ld ---> %ld :port travel\n",udp_hdr_v6->src_port,udp_hdr_v6->dst_port);
 			}
 			break;
 		case 0x3A:
