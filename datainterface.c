@@ -104,7 +104,5 @@ void insert_data(sqlite3 *db,char *ip)
    else
    {
       i++;
-   }
-   sprintf(sqlcom,"");
-   sprintf(tmp,"");  
+   }  
 }

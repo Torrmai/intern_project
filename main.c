@@ -18,6 +18,7 @@
 #include <rte_tcp.h>
 #include <rte_udp.h>
 
+#include "datainterface.h"
 #define clear() printf("\033[H\033[J")
 
 #define RX_RING_SIZE 1024
@@ -88,55 +89,46 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],char p)
 {
 	char ipv6_addr_src[40];
 	char ipv6_addr_dst[40];
+	char tmp_src[4];
+	char tmp_dst[4];
+	ipv6_addr_dst[0] = 0;
+	ipv6_addr_src[0] = 0;
 	for (int i = 0; i < 16; i++)
 	{
 		uint16_t tmp = ip_addr_src[i];
-		if(p == 'y' || p == 'Y'){
-			printf("%02x",tmp);
-			if(i%2 == 1 && i < 15){
-				printf(":");
-			}
-		}
-	}
-	if (p == 'y' || p == 'Y')
-	{
-		printf(" -----> ");
-	}
-	for (int i = 0; i < 16; i++)
-	{
-		uint16_t tmp = ip_addr_dst[i];
-		if(p == 'y' || p == 'Y'){
-			printf("%02x",tmp);
-			if(i%2 == 1 && i < 15){
-				printf(":");
-			}
+		uint16_t tmp2 = ip_addr_dst[i];
+		sprintf(tmp_src,"%02x",tmp);
+		sprintf(tmp_dst,"%02x",tmp2);
+		strcat(ipv6_addr_src,tmp_src);
+		strcat(ipv6_addr_dst,tmp_dst);
+		if(i%2 == 1 && i < 15){
+			strcat(ipv6_addr_src,":");
+			strcat(ipv6_addr_dst,":");
 		}
 	}
 	if(p == 'y' || p == 'Y'){
-	printf("\n");
-	}	
+		printf("%s ----> %s \n",ipv6_addr_src,ipv6_addr_dst);
+	}
 }
 //for printing ipv4 addr.....
 static inline void
 decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,char p){
-	char* ipv4_addr_src[16];//perpare for sending to sql
-	char* ipv4_addr_dst[16];
-	if(p == 'y' || p == 'Y')
-	{
-		printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+	char ipv4_addr_src[16];//perpare for sending to sql
+	char ipv4_addr_dst[16];
+	sprintf(ipv4_addr_src,"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
 			(uint8_t)(ip_addr_src & 0xff),
 			(uint8_t)((ip_addr_src >> 8)&0xff),
 			(uint8_t)((ip_addr_src >> 16)&0xff),
 			(uint8_t)((ip_addr_src >> 24) & 0xff)
-		);
-		printf(" -----> ");
-		printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
+	);
+	sprintf(ipv4_addr_dst,"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
 			(uint8_t)(ip_addr_dst & 0xff),
 			(uint8_t)((ip_addr_dst >> 8)&0xff),
 			(uint8_t)((ip_addr_dst >> 16)&0xff),
 			(uint8_t)((ip_addr_dst >> 24) & 0xff)
-		);
-		printf("\n");
+	);
+	if(p == 'Y' || p == 'y'){
+		printf("%s ----> %s\n",ipv4_addr_src,ipv4_addr_dst);
 	}
 }
 void
@@ -364,6 +356,8 @@ port_init(uint16_t port, struct rte_mempool *mbuf_pool)
 static  __attribute__((noreturn)) void
 lcore_main(void)
 {
+	sqlite3 *db;
+	int stat_db;
 	uint16_t port;
 	char is_debug;
 	struct rte_ether_hdr *eth_hdr;
@@ -382,6 +376,11 @@ lcore_main(void)
 	for (int i = 0; i < 6; i++)
 	{
 		basic_stat[i] = 0;//init value for stat
+	}
+	stat_db = sqlite3_open("ip_stat.db",&db);
+	if(stat_db){
+		printf("ERROR OCCUR DURING OPEN DATABASE......\n");
+		exit(0);
 	}
 	printf("Do you want to print realtime packet detail?[y/N]: ");
 	is_debug = getchar();
