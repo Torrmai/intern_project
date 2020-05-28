@@ -33,6 +33,7 @@ void conclude_stat(sqlite3 *db){
    if(stat != SQLITE_OK){
       printf("err: %s\n",err);
    }
+   //temporary solution
    stat = sqlite3_exec(db,"delete from ip_stat",callback_printdata,0,&err);
    if(stat != SQLITE_OK){
       printf("err: %s\n",err);
