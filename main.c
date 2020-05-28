@@ -112,7 +112,7 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],char p)
 }
 //for printing ipv4 addr.....
 static inline void
-decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,char p){
+decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,char p,sqlite3 *db){
 	char ipv4_addr_src[16];//perpare for sending to sql
 	char ipv4_addr_dst[16];
 	sprintf(ipv4_addr_src,"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
@@ -127,12 +127,19 @@ decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,char p){
 			(uint8_t)((ip_addr_dst >> 16)&0xff),
 			(uint8_t)((ip_addr_dst >> 24) & 0xff)
 	);
+	printf("choice ---->  %d\n",data_choice(db,ipv4_addr_src));
+	if(data_choice(db,ipv4_addr_src)){
+		update_data(db,ipv4_addr_src);
+	}
+	else{
+		insert_data(db,ipv4_addr_src);
+	}
 	if(p == 'Y' || p == 'y'){
 		printf("%s ----> %s\n",ipv4_addr_src,ipv4_addr_dst);
 	}
 }
 void
-print_decode_packet(struct rte_mbuf *m,char p)
+print_decode_packet(struct rte_mbuf *m,char p,sqlite3 *db)
 {
 	uint16_t eth_type;
 	int l2_len;
@@ -157,7 +164,7 @@ print_decode_packet(struct rte_mbuf *m,char p)
 		basic_stat[IPv4]++;
 		l3_len = sizeof(struct rte_ipv4_hdr);
 		ipv4_hdr = (struct rte_ipv4_hdr *)((char *)eth_hdr + l2_len);
-		decode_ip(ipv4_hdr->src_addr,ipv4_hdr->dst_addr,p);
+		decode_ip(ipv4_hdr->src_addr,ipv4_hdr->dst_addr,p,db);
 		if(p == 'y' || p == 'Y'){
 			printf("\t--> ");
 		}
@@ -382,6 +389,7 @@ lcore_main(void)
 		printf("ERROR OCCUR DURING OPEN DATABASE......\n");
 		exit(0);
 	}
+	create_tbl(db);
 	printf("Do you want to print realtime packet detail?[y/N]: ");
 	is_debug = getchar();
 	for (;;) {
@@ -392,7 +400,7 @@ lcore_main(void)
 			const uint16_t nb_rx = rte_eth_rx_burst(port, 0,
 					bufs, BURST_SIZE);
 			for(i=0;i<nb_rx;i++){
-				print_decode_packet(bufs[i],is_debug);
+				print_decode_packet(bufs[i],is_debug,db);
 			}
 			if (unlikely(nb_rx == 0))
 				continue;

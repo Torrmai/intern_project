@@ -19,13 +19,7 @@ static int callback_printdata(void *data,int argc,char **argv,char **azColName)
 }
 static int fetch_data(void *data,int argc,char **argv,char **colname){
    for(int i = 0;i<argc;i++){
-      printf("%s\n",argv[i]);
-      if(atoi(argv[i]) != 0){
-         ch = 0;
-      }
-      else{
-         ch = 1;
-      }
+      ch = atoi(argv[i]);
    }
    return 0;
 }
@@ -41,7 +35,8 @@ void conclude_stat(sqlite3 *db){
    }
 }
 void update_data(sqlite3 *db,char *data){
-   const char* com[100];
+   char com[100];
+   com[0] = 0;
    sprintf(com,"update ip_stat set count = count + 1 where ip_addr = '%s'",data);
    int stat;
    char *err = 0;
@@ -52,11 +47,6 @@ void update_data(sqlite3 *db,char *data){
       printf(com);
       sqlite3_free(err);
    }
-   else
-   {
-      printf("update to db sucessfully.....\n");
-   }
-   sprintf(com,"");
 }
 int data_choice(sqlite3 *db,char *ip){
    const char sqlcom[100];
@@ -70,30 +60,18 @@ int data_choice(sqlite3 *db,char *ip){
       printf(sqlcom);
       sqlite3_free(err);
    }
-   else
-   {
-      printf("check ok\n");
-   }
-   sprintf(sqlcom,"");
-   if(ch == 1){
-      insert_data(db,ip);
-   }
-   else{
-      update_data(db,ip);
-   }
+   return ch;
 }
 void insert_data(sqlite3 *db,char *ip)
 {
-   const char sqlcom[100];
-   const char tmp[100];
+   char sqlcom[300];
+   sqlcom[0] = 0;
    int stat;
    char *err = 0;
-   sprintf(tmp,"insert into ip_stat (id,ip_addr,count)\n");
-   strcat(sqlcom,tmp);
-   sprintf(tmp,"select * from (select %d,'%s',1) as tmp\n",i,ip);
-   strcat(sqlcom,tmp);
-   sprintf(tmp,"where not exists (select ip_addr from ip_stat where ip_addr = '%s') limit 1\n",ip);
-   strcat(sqlcom,tmp);
+   sprintf(sqlcom,"insert into ip_stat (id,ip_addr,count) "\
+               "select * from (select %d,'%s',1) as tmp "\
+               "where not exists (select ip_addr from ip_stat where ip_addr = '%s') limit 1"\
+               ,i,ip,ip);
    stat = sqlite3_exec(db,sqlcom,callback_printdata,0,&err);
    if (stat != SQLITE_OK)
    {
@@ -105,4 +83,22 @@ void insert_data(sqlite3 *db,char *ip)
    {
       i++;
    }  
+}
+void create_tbl(sqlite3 *db){
+   const char comm[100];
+   char *err = 0;
+   int stat;
+   sprintf(comm,"create table ip_stat("\
+         "id int primary key not null,"\
+         "ip_addr text not null unique,"\
+         "count int not null)");
+   stat = sqlite3_exec(db,comm,callback_printdata,0,&err);
+   if (stat != SQLITE_OK)
+   {
+      printf("sql err: %s\n",err);
+      sqlite3_free(err);
+   }
+   else{
+      printf("May be it can create\n");
+   }
 }
