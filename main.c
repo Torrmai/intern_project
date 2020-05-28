@@ -35,7 +35,7 @@
 #define ICMP6 3
 #define IPv4 4
 #define IPv6 5
-
+sqlite3 *db;
 static const char usage[] =
 	"%s EAL_ARGS -- [-t]\n";
 
@@ -77,7 +77,10 @@ initHandler(int sig){
 		printf("\t- UDP: %d\n",basic_stat[UDP]);
 		printf("\t- ICMPv4: %d\n",basic_stat[ICMP4]);
 		printf("\t- ICMPv6: %d\n",basic_stat[ICMP6]);
+		printf("List of most use ip address...\n");
+		conclude_stat(db);
 		printf("Bye.....\n");
+		sqlite3_close(db);
 		exit(0);
 	}
 	else
@@ -369,7 +372,6 @@ port_init(uint16_t port, struct rte_mempool *mbuf_pool)
 static  __attribute__((noreturn)) void
 lcore_main(void)
 {
-	sqlite3 *db;
 	int stat_db;
 	uint16_t port;
 	char is_debug;

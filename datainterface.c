@@ -12,7 +12,7 @@ static int callback_printdata(void *data,int argc,char **argv,char **azColName)
 
     for (int i = 0; i < argc; i++)
     {
-        printf("\t--->%s = %s\n",azColName[i],argv[i] ? argv[i]:"NULL");
+        printf("|%s = %s|\t",azColName[i],argv[i] ? argv[i]:"NULL");
     }
     printf("\n");
     return 0;
@@ -30,6 +30,10 @@ void conclude_stat(sqlite3 *db){
    char *comm = "select ip_addr,count from ip_stat "\
                 "order by count DESC limit 10";
    stat = sqlite3_exec(db,comm,callback_printdata,0,&err);
+   if(stat != SQLITE_OK){
+      printf("err: %s\n",err);
+   }
+   stat = sqlite3_exec(db,"delete from ip_stat",callback_printdata,0,&err);
    if(stat != SQLITE_OK){
       printf("err: %s\n",err);
    }
