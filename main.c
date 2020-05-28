@@ -85,7 +85,7 @@ initHandler(int sig){
 	
 }
 static inline void
-decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],char p)
+decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],char p,sqlite3 *db)
 {
 	char ipv6_addr_src[40];
 	char ipv6_addr_dst[40];
@@ -105,6 +105,12 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],char p)
 			strcat(ipv6_addr_src,":");
 			strcat(ipv6_addr_dst,":");
 		}
+	}
+	if(data_choice(db,ipv6_addr_src)){
+		update_data(db,ipv6_addr_src);
+	}
+	else{
+		insert_data(db,ipv6_addr_src);
 	}
 	if(p == 'y' || p == 'Y'){
 		printf("%s ----> %s \n",ipv6_addr_src,ipv6_addr_dst);
@@ -127,7 +133,7 @@ decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,char p,sqlite3 *
 			(uint8_t)((ip_addr_dst >> 16)&0xff),
 			(uint8_t)((ip_addr_dst >> 24) & 0xff)
 	);
-	printf("choice ---->  %d\n",data_choice(db,ipv4_addr_src));
+	//printf("choice ---->  %d\n",data_choice(db,ipv4_addr_src));
 	if(data_choice(db,ipv4_addr_src)){
 		update_data(db,ipv4_addr_src);
 	}
@@ -205,7 +211,7 @@ print_decode_packet(struct rte_mbuf *m,char p,sqlite3 *db)
 		basic_stat[IPv6]++;
 		l3_len = sizeof(struct rte_ipv6_hdr);
 		ipv6_hdr = (struct rte_ipv6_hdr *)((char *)eth_hdr + l2_len);
-		decode_ipv6(ipv6_hdr->src_addr,ipv6_hdr->dst_addr,p);
+		decode_ipv6(ipv6_hdr->src_addr,ipv6_hdr->dst_addr,p,db);
 		if(p == 'y' || p == 'Y'){
 			printf("\t--> next protocol: ");
 		}
