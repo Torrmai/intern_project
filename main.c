@@ -379,6 +379,7 @@ lcore_main(void)
 	struct rte_ether_hdr *eth_hdr;
 	struct rte_ipv4_hdr *ipv4_hdr;
 	int32_t i;
+	clock_t t;
 	RTE_ETH_FOREACH_DEV(port)
 		if (rte_eth_dev_socket_id(port) > 0 &&
 				rte_eth_dev_socket_id(port) !=
@@ -409,12 +410,19 @@ lcore_main(void)
 			uint32_t size = 0;
 			const uint16_t nb_rx = rte_eth_rx_burst(port, 0,
 					bufs, BURST_SIZE);
+			t = clock();
 			for(i=0;i<nb_rx;i++){
 				print_decode_packet(bufs[i],is_debug,db);
 				//printf("packet len is %d bytes\n",bufs[i]->pkt_len);
 				size += bufs[i]->pkt_len;
 			}
-			printf("total size: %ld\n",size);
+			t = clock() -t;
+			double time_taken = ((double)t)/CLOCKS_PER_SEC;
+			if(size > 0){
+				//printf("total size: %ld\n",size);
+				//printf("fun() took %f seconds to execute \n", time_taken);
+				printf("Throughput %f bytes per seconds\n",((float)size)/time_taken);
+			}
 			if (unlikely(nb_rx == 0))
 				continue;
 			const uint16_t nb_tx = rte_eth_tx_burst(port ^ 1, 0,
