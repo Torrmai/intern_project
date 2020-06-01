@@ -17,6 +17,7 @@
 #include <rte_ip.h>
 #include <rte_tcp.h>
 #include <rte_udp.h>
+#include <time.h>
 
 #include "datainterface.h"
 #define clear() printf("\033[H\033[J")
@@ -405,11 +406,15 @@ lcore_main(void)
 		
 		RTE_ETH_FOREACH_DEV(port) {
 			struct rte_mbuf *bufs[BURST_SIZE];
+			uint32_t size = 0;
 			const uint16_t nb_rx = rte_eth_rx_burst(port, 0,
 					bufs, BURST_SIZE);
 			for(i=0;i<nb_rx;i++){
 				print_decode_packet(bufs[i],is_debug,db);
+				//printf("packet len is %d bytes\n",bufs[i]->pkt_len);
+				size += bufs[i]->pkt_len;
 			}
+			printf("total size: %ld\n",size);
 			if (unlikely(nb_rx == 0))
 				continue;
 			const uint16_t nb_tx = rte_eth_tx_burst(port ^ 1, 0,
