@@ -5,8 +5,8 @@
 APP = rxtx_callbacks
 
 # all source are stored in SRCS-y
-SRCS-y := main.c
-
+SRCS-y := main.c 
+SRCS-y += datainterface.c
 # Build using pkg-config variables if possible
 ifeq ($(shell pkg-config --exists libdpdk && echo 0),0)
 
@@ -21,7 +21,7 @@ PKGCONF ?= pkg-config
 
 PC_FILE := $(shell $(PKGCONF) --path libdpdk 2>/dev/null)
 CFLAGS += -O3 $(shell $(PKGCONF) --cflags libdpdk)
-LDFLAGS_SHARED = $(shell $(PKGCONF) --libs libdpdk)
+LDFLAGS_SHARED = $(shell $(PKGCONF) --libs libdpdk --libs sqlite3)
 LDFLAGS_STATIC = -Wl,-Bstatic $(shell $(PKGCONF) --static --libs libdpdk)
 
 build/$(APP)-shared: $(SRCS-y) Makefile $(PC_FILE) | build
