@@ -17,10 +17,7 @@
 #include <rte_ip.h>
 #include <rte_tcp.h>
 #include <rte_udp.h>
-<<<<<<< HEAD
 #include <time.h>
-=======
->>>>>>> c5cbf03263c6ef29a3951e7e0bf38b80fe686411
 
 #include "datainterface.h"
 #define clear() printf("\033[H\033[J")
@@ -39,11 +36,7 @@
 #define ICMP6 3
 #define IPv4 4
 #define IPv6 5
-<<<<<<< HEAD
 sqlite3 *db;
-=======
-
->>>>>>> c5cbf03263c6ef29a3951e7e0bf38b80fe686411
 static const char usage[] =
 	"%s EAL_ARGS -- [-t]\n";
 
@@ -85,11 +78,8 @@ initHandler(int sig){
 		printf("\t- UDP: %d\n",basic_stat[UDP]);
 		printf("\t- ICMPv4: %d\n",basic_stat[ICMP4]);
 		printf("\t- ICMPv6: %d\n",basic_stat[ICMP6]);
-<<<<<<< HEAD
 		printf("List of most use ip address...\n");
 		conclude_stat(db);
-=======
->>>>>>> c5cbf03263c6ef29a3951e7e0bf38b80fe686411
 		printf("Bye.....\n");
 		sqlite3_close(db);
 		exit(0);
@@ -101,7 +91,6 @@ initHandler(int sig){
 static inline void
 decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],char p,sqlite3 *db)
 {
-<<<<<<< HEAD
 	char ipv6_addr_src[40];
 	char ipv6_addr_dst[40];
 	char tmp_src[4];
@@ -129,21 +118,10 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],char p,sqlit
 	}
 	if(p == 'y' || p == 'Y'){
 		printf("%s ----> %s \n",ipv6_addr_src,ipv6_addr_dst);
-=======
-	for (int i = 0; i < 16; i++)
-	{
-		/* code */
-		uint16_t tmp = ip_addr[i];
-		printf("%02x",tmp);
-		if(i%2 == 1 && i < 15){
-			printf(":");
-		}
->>>>>>> c5cbf03263c6ef29a3951e7e0bf38b80fe686411
 	}
 }
 //for printing ipv4 addr.....
 static inline void
-<<<<<<< HEAD
 decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,char p,sqlite3 *db){
 	char ipv4_addr_src[16];//perpare for sending to sql
 	char ipv4_addr_dst[16];
@@ -169,24 +147,6 @@ decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,char p,sqlite3 *
 	if(p == 'Y' || p == 'y'){
 		printf("%s ----> %s\n",ipv4_addr_src,ipv4_addr_dst);
 	}
-=======
-decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst){
-	char* ipv4_addr_src[16];//perpare for sending to sql
-	printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
-		(uint8_t)(ip_addr_src & 0xff),
-		(uint8_t)((ip_addr_src >> 8)&0xff),
-		(uint8_t)((ip_addr_src >> 16)&0xff),
-		(uint8_t)((ip_addr_src >> 24) & 0xff)
-	);
-	printf(" -----> ");
-	printf("%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
-		(uint8_t)(ip_addr_dst & 0xff),
-		(uint8_t)((ip_addr_dst >> 8)&0xff),
-		(uint8_t)((ip_addr_dst >> 16)&0xff),
-		(uint8_t)((ip_addr_dst >> 24) & 0xff)
-	);
-	printf("\n");
->>>>>>> c5cbf03263c6ef29a3951e7e0bf38b80fe686411
 }
 void
 print_decode_packet(struct rte_mbuf *m,char p,sqlite3 *db)
@@ -214,7 +174,6 @@ print_decode_packet(struct rte_mbuf *m,char p,sqlite3 *db)
 		basic_stat[IPv4]++;
 		l3_len = sizeof(struct rte_ipv4_hdr);
 		ipv4_hdr = (struct rte_ipv4_hdr *)((char *)eth_hdr + l2_len);
-<<<<<<< HEAD
 		decode_ip(ipv4_hdr->src_addr,ipv4_hdr->dst_addr,p,db);
 		if(p == 'y' || p == 'Y'){
 			printf("\t--> ");
@@ -223,12 +182,6 @@ print_decode_packet(struct rte_mbuf *m,char p,sqlite3 *db)
 			if(p == 'y' || p == 'Y'){
 				printf("protocol(next layer): ICMP\n");
 			}
-=======
-		decode_ip(ipv4_hdr->src_addr,ipv4_hdr->dst_addr);
-		printf("\t--> ");
-		if(ipv4_hdr->next_proto_id == 0x01){
-			printf("protocol(next layer): ICMP\n");
->>>>>>> c5cbf03263c6ef29a3951e7e0bf38b80fe686411
 			basic_stat[ICMP4]++;
 		}
 		else if(ipv4_hdr->next_proto_id == 0x02){
@@ -238,7 +191,6 @@ print_decode_packet(struct rte_mbuf *m,char p,sqlite3 *db)
 		}
 		else if(ipv4_hdr->next_proto_id == 0x11){
 			basic_stat[UDP]++;
-<<<<<<< HEAD
 			udp_hdr = (struct rte_udp_hdr *)((char*)ipv4_hdr + l3_len);
 			if(p == 'y' || p == 'Y'){
 				printf("protocol(next layer): UDP\n");
@@ -252,17 +204,6 @@ print_decode_packet(struct rte_mbuf *m,char p,sqlite3 *db)
 				printf("protocol(next layer): TCP\n");
 				printf(" \t\t%ld ---> %ld :port travel\n",tcp_hdr_v4->src_port,tcp_hdr_v4->dst_port);
 			}
-=======
-			printf("protocol(next layer): UDP\n");
-			udp_hdr = (struct rte_udp_hdr *)((char*)ipv4_hdr + l3_len);
-			printf(" \t\t%ld ---> %ld :port travel\n",udp_hdr->src_port,udp_hdr->dst_port);
-		}
-		else if(ipv4_hdr->next_proto_id == 0x06){
-			basic_stat[TCP]++;
-			printf("protocol(next layer): TCP\n");
-			tcp_hdr_v4 = (struct rte_tcp_hdr *)((char *)ipv4_hdr + l3_len);
-			printf(" \t\t%ld ---> %ld :port travel\n",tcp_hdr_v4->src_port,tcp_hdr_v4->dst_port);
->>>>>>> c5cbf03263c6ef29a3951e7e0bf38b80fe686411
 		}
 		else{
 			if(p == 'y' || p == 'Y'){
@@ -274,23 +215,14 @@ print_decode_packet(struct rte_mbuf *m,char p,sqlite3 *db)
 		basic_stat[IPv6]++;
 		l3_len = sizeof(struct rte_ipv6_hdr);
 		ipv6_hdr = (struct rte_ipv6_hdr *)((char *)eth_hdr + l2_len);
-<<<<<<< HEAD
 		decode_ipv6(ipv6_hdr->src_addr,ipv6_hdr->dst_addr,p,db);
 		if(p == 'y' || p == 'Y'){
 			printf("\t--> next protocol: ");
 		}
-=======
-		decode_ipv6(ipv6_hdr->src_addr);
-		printf(" --> ");
-		decode_ipv6(ipv6_hdr->dst_addr);
-		printf("\n");
-		printf(" --> next protocol: ");
->>>>>>> c5cbf03263c6ef29a3951e7e0bf38b80fe686411
 		switch (ipv6_hdr->proto)
 		{
 		case 0x06:
 			basic_stat[TCP]++;
-<<<<<<< HEAD
 			tcp_hdr_v6 = (struct rte_tcp_hdr *)((char *)ipv6_hdr + l3_len);
 			if(p == 'y' || p == 'Y'){
 				printf("TCP\n");
@@ -310,21 +242,6 @@ print_decode_packet(struct rte_mbuf *m,char p,sqlite3 *db)
 			if(p == 'y' || p == 'Y'){
 			printf("ICMP for ipV6\n");
 			}
-=======
-			printf("TCP\n");
-			tcp_hdr_v6 = (struct rte_tcp_hdr *)((char *)ipv6_hdr + l3_len);
-			printf(" %ld ---> %ld :port travel\n",tcp_hdr_v6->src_port,tcp_hdr_v6->dst_port);
-			break;
-		case 0x11:
-			basic_stat[UDP]++;
-			printf("UDP\n");
-			udp_hdr_v6 = (struct rte_udp_hdr *)((char*)ipv6_hdr + l3_len);
-			printf(" %ld ---> %ld :port travel\n",udp_hdr_v6->src_port,udp_hdr_v6->dst_port);
-			break;
-		case 0x3A:
-			basic_stat[ICMP6]++;
-			printf("ICMP for ipV6\n");
->>>>>>> c5cbf03263c6ef29a3951e7e0bf38b80fe686411
 			break;
 		default:
 			break;
@@ -476,7 +393,6 @@ lcore_main(void)
 	{
 		basic_stat[i] = 0;//init value for stat
 	}
-<<<<<<< HEAD
 	stat_db = sqlite3_open("ip_stat.db",&db);
 	if(stat_db){
 		printf("ERROR OCCUR DURING OPEN DATABASE......\n");
@@ -485,9 +401,6 @@ lcore_main(void)
 	create_tbl(db);
 	printf("Do you want to print realtime packet detail?[y/N]: ");
 	is_debug = getchar();
-=======
-	
->>>>>>> c5cbf03263c6ef29a3951e7e0bf38b80fe686411
 	for (;;) {
 		//Maybe I have to work around here.
 		
