@@ -116,19 +116,20 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],char p,sqlit
 			strcat(ipv6_addr_dst,":");
 		}
 	}
-	if(data_choice(db,ipv6_addr_src)){
-		update_data(db,ipv6_addr_src);
-	}
-	else{
-		insert_data(db,ipv6_addr_src);
-	}
+	// if(data_choice(db,ipv6_addr_src)){
+	// 	update_data(db,ipv6_addr_src);
+	// }
+	// else{
+	// 	insert_data(db,ipv6_addr_src);
+	// }
 	if(p == 'y' || p == 'Y'){
 		printf("%s ----> %s \n",ipv6_addr_src,ipv6_addr_dst);
 	}
 }
 //for printing ipv4 addr.....
 static inline void
-decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,char p,sqlite3 *db){
+decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,
+			uint16_t src_port,uint16_t dst_port,uint32_t s,char p,sqlite3 *db){
 	char ipv4_addr_src[16];//perpare for sending to sql
 	char ipv4_addr_dst[16];
 	sprintf(ipv4_addr_src,"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
@@ -144,18 +145,18 @@ decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,char p,sqlite3 *
 			(uint8_t)((ip_addr_dst >> 24) & 0xff)
 	);
 	//printf("choice ---->  %d\n",data_choice(db,ipv4_addr_src));
-	if(data_choice(db,ipv4_addr_src)){
-		update_data(db,ipv4_addr_src);
+	if(data_choice(db,ipv4_addr_src,src_port)){
+		update_data(db,ipv4_addr_src,s,src_port);
 	}
 	else{
-		insert_data(db,ipv4_addr_src);
+		insert_data(db,ipv4_addr_src,src_port,s);
 	}
 	if(p == 'Y' || p == 'y'){
 		printf("%s ----> %s\n",ipv4_addr_src,ipv4_addr_dst);
 	}
 }
 void
-print_decode_packet(struct rte_mbuf *m,char p,sqlite3 *db)
+print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 {
 	uint16_t eth_type;
 	int l2_len;
@@ -182,7 +183,6 @@ print_decode_packet(struct rte_mbuf *m,char p,sqlite3 *db)
 		basic_stat[IPv4]++;
 		l3_len = sizeof(struct rte_ipv4_hdr);
 		ipv4_hdr = (struct rte_ipv4_hdr *)((char *)eth_hdr + l2_len);
-		decode_ip(ipv4_hdr->src_addr,ipv4_hdr->dst_addr,p,db);
 		if(ipv4_hdr->next_proto_id == 0x01){
 			port_src = 0;
 			port_dst = 0;
@@ -209,14 +209,18 @@ print_decode_packet(struct rte_mbuf *m,char p,sqlite3 *db)
 			sprintf(protocol_msg,"\t--> protocol(next layer): TCP\n");
 		}
 		else{
+			port_src = 0;
+			port_dst = 0;
 			sprintf(protocol_msg,"\t--> protocol(next layer): %d (Will add into data base later.....)\n",ipv4_hdr->next_proto_id);
 		}
+		decode_ip(ipv4_hdr->src_addr,ipv4_hdr->dst_addr,port_src,port_dst,siz,p,db);
 		break;
 	case RTE_ETHER_TYPE_IPV6:
 		basic_stat[IPv6]++;
 		l3_len = sizeof(struct rte_ipv6_hdr);
 		ipv6_hdr = (struct rte_ipv6_hdr *)((char *)eth_hdr + l2_len);
 		decode_ipv6(ipv6_hdr->src_addr,ipv6_hdr->dst_addr,p,db);
+		printf("#IPv6 packet: %d\n",basic_stat[IPv6]);
 		switch (ipv6_hdr->proto)
 		{
 		case 0x06:
@@ -246,6 +250,13 @@ print_decode_packet(struct rte_mbuf *m,char p,sqlite3 *db)
 	default:
 		break;
 	}
+	if (p == 'y' || p == 'Y')
+	{
+		printf(protocol_msg);
+		printf("%d-->%d\n",port_src,port_dst);
+		//printf("############ Caution tcp and udp have port only!!!!!! other is sql propose ##############\n");
+	}
+	
 }
 /*
  * Initialises a given port using global settings and with the rx buffers
@@ -395,8 +406,8 @@ lcore_main(void)
 		exit(0);
 	}
 	create_tbl(db);
-	printf("Do you want to print realtime packet detail?[y/N]: ");
-	is_debug = getchar();
+	//printf("Do you want to print realtime packet detail?[y/N]: ");
+	is_debug = 'n';//debug propose
 	t = clock();
 	for (;;) {
 		//Maybe I have to work around here.
@@ -408,7 +419,7 @@ lcore_main(void)
 					bufs, BURST_SIZE);
 			
 			for(i=0;i<nb_rx;i++){
-				print_decode_packet(bufs[i],is_debug,db);
+				print_decode_packet(bufs[i],is_debug,bufs[i]->pkt_len,db);
 				//printf("packet len is %d bytes\n",bufs[i]->pkt_len);
 				size += bufs[i]->pkt_len;
 			}
