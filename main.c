@@ -37,6 +37,8 @@
 #define IPv4 4
 #define IPv6 5
 sqlite3 *db;
+uint32_t size = 0;
+clock_t t;
 static const char usage[] =
 	"%s EAL_ARGS -- [-t]\n";
 
@@ -71,6 +73,8 @@ initHandler(int sig){
 	c = getchar();
 	if (c == 'y' || c == 'Y')
 	{
+		t = clock() -t;
+		double time_taken = ((double)t)/CLOCKS_PER_SEC;
 		clear();
 		printf("There are %d IPv4 packets and %d IPv6 packets......\n",basic_stat[IPv4],basic_stat[IPv6]);
 		printf("These are the number of packet type(layer 4 protocol) which has recorded....\n");
@@ -80,6 +84,8 @@ initHandler(int sig){
 		printf("\t- ICMPv6: %d\n",basic_stat[ICMP6]);
 		printf("List of most use ip address...\n");
 		conclude_stat(db);
+		printf("\n\n\t\tThis progam has been record for %f seconds.....\n",time_taken);
+		printf("\t\tThroughput of this session: %ld bytes\n",size);
 		printf("Bye.....\n");
 		sqlite3_close(db);
 		exit(0);
@@ -379,7 +385,6 @@ lcore_main(void)
 	struct rte_ether_hdr *eth_hdr;
 	struct rte_ipv4_hdr *ipv4_hdr;
 	int32_t i;
-	clock_t t;
 	RTE_ETH_FOREACH_DEV(port)
 		if (rte_eth_dev_socket_id(port) > 0 &&
 				rte_eth_dev_socket_id(port) !=
@@ -402,26 +407,20 @@ lcore_main(void)
 	create_tbl(db);
 	printf("Do you want to print realtime packet detail?[y/N]: ");
 	is_debug = getchar();
+	t = clock();
 	for (;;) {
 		//Maybe I have to work around here.
 		
 		RTE_ETH_FOREACH_DEV(port) {
 			struct rte_mbuf *bufs[BURST_SIZE];
-			uint32_t size = 0;
+			
 			const uint16_t nb_rx = rte_eth_rx_burst(port, 0,
 					bufs, BURST_SIZE);
-			t = clock();
+			
 			for(i=0;i<nb_rx;i++){
 				print_decode_packet(bufs[i],is_debug,db);
 				//printf("packet len is %d bytes\n",bufs[i]->pkt_len);
 				size += bufs[i]->pkt_len;
-			}
-			t = clock() -t;
-			double time_taken = ((double)t)/CLOCKS_PER_SEC;
-			if(size > 0){
-				//printf("total size: %ld\n",size);
-				//printf("fun() took %f seconds to execute \n", time_taken);
-				printf("Throughput %f bytes per seconds\n",((float)size)/time_taken);
 			}
 			if (unlikely(nb_rx == 0))
 				continue;
