@@ -82,10 +82,11 @@ initHandler(int sig){
 		printf("\t- UDP: %d\n",basic_stat[UDP]);
 		printf("\t- ICMPv4: %d\n",basic_stat[ICMP4]);
 		printf("\t- ICMPv6: %d\n",basic_stat[ICMP6]);
-		printf("List of most use ip address...\n");
+		printf("List of most use source ip addresses...\n");
 		conclude_stat(db);
 		printf("\n\n\t\tThis progam has been record for %f seconds.....\n",time_taken);
 		printf("\t\tThroughput of this session: %ld bytes\n",size);
+		printf("\t\tPort 0 mean it is other protocol (not tcp and udp)\n\n\n");
 		printf("Bye.....\n");
 		sqlite3_close(db);
 		exit(0);
@@ -95,7 +96,8 @@ initHandler(int sig){
 	
 }
 static inline void
-decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],char p,sqlite3 *db)
+decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],
+			uint16_t src_port,uint16_t dst_port,uint32_t s,char p,sqlite3 *db)
 {
 	char ipv6_addr_src[40];
 	char ipv6_addr_dst[40];
@@ -116,12 +118,12 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],char p,sqlit
 			strcat(ipv6_addr_dst,":");
 		}
 	}
-	// if(data_choice(db,ipv6_addr_src)){
-	// 	update_data(db,ipv6_addr_src);
-	// }
-	// else{
-	// 	insert_data(db,ipv6_addr_src);
-	// }
+	if(data_choice(db,ipv6_addr_src,src_port)){
+		update_data(db,ipv6_addr_src,s,src_port);
+	}
+	else{
+		insert_data(db,ipv6_addr_src,src_port,s);
+	}
 	if(p == 'y' || p == 'Y'){
 		printf("%s ----> %s \n",ipv6_addr_src,ipv6_addr_dst);
 	}
@@ -161,6 +163,7 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 	uint16_t eth_type;
 	int l2_len;
 	int l3_len;
+	int toggle_print = 1;
 	struct rte_ether_hdr *eth_hdr;
 	struct rte_ipv4_hdr *ipv4_hdr;
 	struct rte_ipv6_hdr *ipv6_hdr;
@@ -219,7 +222,6 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 		basic_stat[IPv6]++;
 		l3_len = sizeof(struct rte_ipv6_hdr);
 		ipv6_hdr = (struct rte_ipv6_hdr *)((char *)eth_hdr + l2_len);
-		decode_ipv6(ipv6_hdr->src_addr,ipv6_hdr->dst_addr,p,db);
 		printf("#IPv6 packet: %d\n",basic_stat[IPv6]);
 		switch (ipv6_hdr->proto)
 		{
@@ -246,11 +248,13 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 		default:
 			break;
 		}
+		decode_ipv6(ipv6_hdr->src_addr,ipv6_hdr->dst_addr,port_src,port_dst,siz,p,db);
 		break;
 	default:
+		toggle_print = 0;
 		break;
 	}
-	if (p == 'y' || p == 'Y')
+	if ((p == 'y' || p == 'Y') && toggle_print)
 	{
 		printf(protocol_msg);
 		printf("%d-->%d\n",port_src,port_dst);
@@ -405,9 +409,9 @@ lcore_main(void)
 		printf("ERROR OCCUR DURING OPEN DATABASE......\n");
 		exit(0);
 	}
-	create_tbl(db);
-	//printf("Do you want to print realtime packet detail?[y/N]: ");
-	is_debug = 'n';//debug propose
+	//create_tbl(db);
+	printf("Do you want to print realtime packet detail?[y/N]: ");
+	scanf(" %c",&is_debug);
 	t = clock();
 	for (;;) {
 		//Maybe I have to work around here.
