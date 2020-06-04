@@ -2,10 +2,10 @@
 #include <sqlite3.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include "datainterface.h"
 #define UPDATE 8
 #define INSERT 9
-int i = 1;
 int ch;
 static int callback_printdata(void *data,int argc,char **argv,char **azColName)
 {
@@ -27,7 +27,7 @@ void conclude_stat(sqlite3 *db){
    int stat;
    const char *data = "Rank: ";
    char *err = 0;
-   char *comm = "select ip_addr,count from ip_stat "\
+   char *comm = "select * from ip_stat "\
                 "order by count DESC limit 10";
    stat = sqlite3_exec(db,comm,callback_printdata,0,&err);
    if(stat != SQLITE_OK){
@@ -39,10 +39,10 @@ void conclude_stat(sqlite3 *db){
       printf("err: %s\n",err);
    }
 }
-void update_data(sqlite3 *db,char *data){
-   char com[100];
+void update_data(sqlite3 *db,char *data,uint32_t pkt_size,uint16_t port){
+   char com[200];
    com[0] = 0;
-   sprintf(com,"update ip_stat set count = count + 1 where ip_addr = '%s'",data);
+   sprintf(com,"update ip_stat set count = count + 1,sum_tot_size = sum_tot_size + %d where ip_addr = '%s' and port = %d",pkt_size,data,port);
    int stat;
    char *err = 0;
    stat = sqlite3_exec(db,com,callback_printdata,0,&err);
@@ -53,11 +53,11 @@ void update_data(sqlite3 *db,char *data){
       sqlite3_free(err);
    }
 }
-int data_choice(sqlite3 *db,char *ip){
-   const char sqlcom[100];
+int data_choice(sqlite3 *db,char *ip,uint16_t port){
+   const char sqlcom[200];
    int stat;
    char *err = 0;
-   sprintf(sqlcom,"select count(*) from ip_stat where ip_addr = '%s'",ip);
+   sprintf(sqlcom,"select count(*) from ip_stat where ip_addr = '%s' and port = %d",ip,port);
    stat = sqlite3_exec(db,sqlcom,fetch_data,0,&err);
    if (stat != SQLITE_OK)
    {
@@ -67,16 +67,16 @@ int data_choice(sqlite3 *db,char *ip){
    }
    return ch;
 }
-void insert_data(sqlite3 *db,char *ip)
+void insert_data(sqlite3 *db,char *ip,uint16_t port,uint32_t pkt_size)
 {
    char sqlcom[300];
    sqlcom[0] = 0;
    int stat;
    char *err = 0;
-   sprintf(sqlcom,"insert into ip_stat (id,ip_addr,count) "\
-               "select * from (select %d,'%s',1) as tmp "\
-               "where not exists (select ip_addr from ip_stat where ip_addr = '%s') limit 1"\
-               ,i,ip,ip);
+   sprintf(sqlcom,"insert into ip_stat (ip_addr,port,count,sum_tot_size) "\
+               "select * from (select '%s',%d,1,%ld) as tmp "\
+               "where not exists (select ip_addr from ip_stat where ip_addr = '%s' and port = %d) limit 1"\
+               ,ip,port,pkt_size,ip,port);
    stat = sqlite3_exec(db,sqlcom,callback_printdata,0,&err);
    if (stat != SQLITE_OK)
    {
@@ -84,19 +84,17 @@ void insert_data(sqlite3 *db,char *ip)
       printf(sqlcom);
       sqlite3_free(err);
    }
-   else
-   {
-      i++;
-   }  
 }
 void create_tbl(sqlite3 *db){
-   const char comm[100];
+   const char comm[300];
    char *err = 0;
    int stat;
    sprintf(comm,"create table ip_stat("\
-         "id int primary key not null,"\
-         "ip_addr text not null unique,"\
-         "count int not null)");
+         "ip_addr text not null,"\
+         "port int not null,"\
+         "count int not null,"\
+         "sum_tot_size int not null,"\
+         "primary key (ip_addr,port))");
    stat = sqlite3_exec(db,comm,callback_printdata,0,&err);
    if (stat != SQLITE_OK)
    {

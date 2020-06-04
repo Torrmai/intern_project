@@ -49,8 +49,8 @@ RTE_TARGET ?= $(notdir $(abspath $(dir $(firstword $(wildcard $(RTE_SDK)/*/.conf
 
 include $(RTE_SDK)/mk/rte.vars.mk
 
-CFLAGS += $(WERROR_FLAGS)
-
+CFLAGS += $(WERROR_FLAGS) -std=c99
+LDLIBS += -lsqlite3
 # rte_eth_read_clock is experimental
 CFLAGS += -DALLOW_EXPERIMENTAL_API
 
