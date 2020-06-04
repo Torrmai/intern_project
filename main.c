@@ -404,7 +404,7 @@ lcore_main(void)
 	{
 		basic_stat[i] = 0;//init value for stat
 	}
-	stat_db = sqlite3_open("ip_stat.db",&db);
+	stat_db = sqlite3_open(":memory:",&db);//change to in memory db
 	if(stat_db){
 		printf("ERROR OCCUR DURING OPEN DATABASE......\n");
 		exit(0);
