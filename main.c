@@ -118,11 +118,11 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],
 			strcat(ipv6_addr_dst,":");
 		}
 	}
-	if(data_choice(db,ipv6_addr_src,src_port)){
-		update_data(db,ipv6_addr_src,s,src_port);
+	if(data_choice(db,ipv6_addr_src,"src",src_port)){
+		update_data(db,ipv6_addr_src,"src",s,src_port);
 	}
 	else{
-		insert_data(db,ipv6_addr_src,src_port,s);
+		insert_data(db,ipv6_addr_src,"src",src_port,s);
 	}
 	if(p == 'y' || p == 'Y'){
 		printf("%s ----> %s \n",ipv6_addr_src,ipv6_addr_dst);
@@ -147,11 +147,11 @@ decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,
 			(uint8_t)((ip_addr_dst >> 24) & 0xff)
 	);
 	//printf("choice ---->  %d\n",data_choice(db,ipv4_addr_src));
-	if(data_choice(db,ipv4_addr_src,src_port)){
-		update_data(db,ipv4_addr_src,s,src_port);
+	if(data_choice(db,ipv4_addr_src,"src",src_port)){
+		update_data(db,ipv4_addr_src,"src",s,src_port);
 	}
 	else{
-		insert_data(db,ipv4_addr_src,src_port,s);
+		insert_data(db,ipv4_addr_src,"src",src_port,s);
 	}
 	if(p == 'Y' || p == 'y'){
 		printf("%s ----> %s\n",ipv4_addr_src,ipv4_addr_dst);
@@ -409,7 +409,7 @@ lcore_main(void)
 		printf("ERROR OCCUR DURING OPEN DATABASE......\n");
 		exit(0);
 	}
-	//create_tbl(db);
+	create_tbl(db);
 	printf("Do you want to print realtime packet detail?[y/N]: ");
 	scanf(" %c",&is_debug);
 	t = clock();
