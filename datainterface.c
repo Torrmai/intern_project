@@ -12,7 +12,7 @@ static int callback_printdata(void *data,int argc,char **argv,char **azColName)
 
     for (int i = 0; i < argc; i++)
     {
-        printf("|%s = %s|\t",azColName[i],argv[i] ? argv[i]:"NULL");
+        printf("| %s |\t",argv[i] ? argv[i]:"NULL");
     }
     printf("\n");
     return 0;
@@ -23,12 +23,16 @@ static int fetch_data(void *data,int argc,char **argv,char **colname){
    }
    return 0;
 }
-void conclude_stat(sqlite3 *db){
+void conclude_stat(sqlite3 *db,char *target){
    int stat;
    const char *data = "Rank: ";
    char *err = 0;
-   char *comm = "select * from ip_stat_src "\
-                "order by count DESC limit 10";
+   // char *comm = "select * from ip_stat_src "\
+   //              "order by count DESC limit 10";
+   char comm[300];
+   sprintf(comm,"select * from ip_stat_%s "\
+         "order by count DESC limit 10",target);
+   printf("| ip |\t| port |\t| count |\t| sum size |\n");
    stat = sqlite3_exec(db,comm,callback_printdata,0,&err);
    if(stat != SQLITE_OK){
       printf("err: %s\n",err);
@@ -107,5 +111,20 @@ void create_tbl(sqlite3 *db){
    }
    else{
       printf("Create ip_stat_src\n");
+   }
+   sprintf(comm,"create table ip_stat_dst("\
+         "ip_addr text not null,"\
+         "port int not null,"\
+         "count int not null,"\
+         "sum_tot_size int not null,"\
+         "primary key (ip_addr,port))");
+   stat = sqlite3_exec(db,comm,callback_printdata,0,&err);
+   if (stat != SQLITE_OK)
+   {
+      printf("sql err: %s\n",err);
+      sqlite3_free(err);
+   }
+   else{
+      printf("Create ip_stat_dst\n");
    }
 }

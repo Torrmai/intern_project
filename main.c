@@ -83,7 +83,9 @@ initHandler(int sig){
 		printf("\t- ICMPv4: %d\n",basic_stat[ICMP4]);
 		printf("\t- ICMPv6: %d\n",basic_stat[ICMP6]);
 		printf("List of most use source ip addresses...\n");
-		conclude_stat(db);
+		conclude_stat(db,"src");
+		printf("List of most use destination ip addresses...\n");
+		conclude_stat(db,"dst");
 		printf("\n\n\t\tThis progam has been record for %f seconds.....\n",time_taken);
 		printf("\t\tThroughput of this session: %ld bytes\n",size);
 		printf("\t\tPort 0 mean it is other protocol (not tcp and udp)\n\n\n");
@@ -124,6 +126,12 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],
 	else{
 		insert_data(db,ipv6_addr_src,"src",src_port,s);
 	}
+	if(data_choice(db,ipv6_addr_dst,"dst",dst_port)){
+		update_data(db,ipv6_addr_dst,"dst",s,dst_port);
+	}
+	else{
+		insert_data(db,ipv6_addr_dst,"dst",dst_port,s);
+	}
 	if(p == 'y' || p == 'Y'){
 		printf("%s ----> %s \n",ipv6_addr_src,ipv6_addr_dst);
 	}
@@ -152,6 +160,12 @@ decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,
 	}
 	else{
 		insert_data(db,ipv4_addr_src,"src",src_port,s);
+	}
+	if(data_choice(db,ipv4_addr_dst,"dst",dst_port)){
+		update_data(db,ipv4_addr_dst,"dst",s,dst_port);
+	}
+	else{
+		insert_data(db,ipv4_addr_dst,"dst",dst_port,s);
 	}
 	if(p == 'Y' || p == 'y'){
 		printf("%s ----> %s\n",ipv4_addr_src,ipv4_addr_dst);
