@@ -89,6 +89,7 @@ initHandler(int sig){
 		printf("\n\n\t\tThis progam has been record for %f seconds.....\n",time_taken);
 		printf("\t\tThroughput of this session: %ld bytes\n",size);
 		printf("\t\tPort 0 mean it is other protocol (not tcp and udp)\n\n\n");
+		create_log(db,time_taken);
 		printf("Bye.....\n");
 		sqlite3_close(db);
 		exit(0);

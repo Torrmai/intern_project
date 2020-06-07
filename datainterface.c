@@ -3,10 +3,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <time.h>
 #include "datainterface.h"
 #define UPDATE 8
 #define INSERT 9
 int ch;
+FILE *target_file;
 static int callback_printdata(void *data,int argc,char **argv,char **azColName)
 {
 
@@ -17,11 +19,52 @@ static int callback_printdata(void *data,int argc,char **argv,char **azColName)
     printf("\n");
     return 0;
 }
+static int callback_printlog(void *data,int argc,char **argv,char **azColName)
+{
+   for(int i=0;i<argc;i++){
+      fprintf(target_file,"%s\t\t",argv[i]?argv[i]:"NULL");
+   }
+   fprintf(target_file,"\n");
+   return 0;
+}
 static int fetch_data(void *data,int argc,char **argv,char **colname){
    for(int i = 0;i<argc;i++){
       ch = atoi(argv[i]);
    }
    return 0;
+}
+void create_log(sqlite3 *db,double sess_time){
+   time_t t = time(NULL);
+   char fileName[100];
+   int stat;
+   char *err = 0;
+   struct tm currtime = *localtime(&t);
+   sprintf(fileName,"%d-%d-%d-%d:%d:%d.txt",
+      currtime.tm_mday,currtime.tm_mon,(currtime.tm_year+1900),currtime.tm_hour,currtime.tm_min,currtime.tm_sec);
+   target_file = fopen(fileName,"w+");
+   if(target_file == NULL){
+      printf("Null file can't create file....\n");
+   }else{
+      fprintf(target_file,"-------record at %d:%d:%d------\n",currtime.tm_hour,currtime.tm_min,currtime.tm_sec);
+      fprintf(target_file,"-------format col1 ip\tcol2 port\tcol3 count\tcol4 sum of frame size------\n");
+      fprintf(target_file,"-------------ip src statistic---------\n");
+      char *comm = "select * from ip_stat_src "\
+                   "order by count DESC";
+      stat = sqlite3_exec(db,comm,callback_printlog,0,&err);
+      if(stat != SQLITE_OK){
+         printf("err: %s\n",err);
+      }
+      fprintf(target_file,"-------------ip dst statistic---------\n");
+      char *comm2 = "select * from ip_stat_dst "\
+                    "order by count DESC";
+      stat = sqlite3_exec(db,comm2,callback_printlog,0,&err);
+      if(stat != SQLITE_OK){
+         printf("err: %s\n",err);
+      }
+      fprintf(target_file,"\n\nThis session has been recorded for %f seconds\n",sess_time);
+      printf("Log file: %s has been created successfully\n",fileName);
+      fclose(target_file);
+   }
 }
 void conclude_stat(sqlite3 *db,char *target){
    int stat;
