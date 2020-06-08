@@ -4,7 +4,7 @@
 #include <stdint.h>
 int ch;
 void conclude_stat(sqlite3 *db,char *target);
-void create_log(sqlite3 *db,double sess_time);
+void create_log(sqlite3 *db);
 void update_data(sqlite3 *db,char *data,char *target,uint32_t pkt_size,uint16_t port);
 int data_choice(sqlite3 *db,char *ip,char *target,uint16_t port);
 void insert_data(sqlite3 *db,char *ip,char *target,uint16_t port,uint32_t pkt_size);

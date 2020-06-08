@@ -18,6 +18,7 @@
 #include <rte_tcp.h>
 #include <rte_udp.h>
 #include <time.h>
+#include <math.h>
 
 #include "datainterface.h"
 #define clear() printf("\033[H\033[J")
@@ -76,19 +77,19 @@ initHandler(int sig){
 		t = clock() -t;
 		double time_taken = ((double)t)/CLOCKS_PER_SEC;
 		clear();
-		printf("There are %d IPv4 packets and %d IPv6 packets......\n",basic_stat[IPv4],basic_stat[IPv6]);
-		printf("These are the number of packet type(layer 4 protocol) which has recorded....\n");
-		printf("\t- TCP: %d\n",basic_stat[TCP]);
-		printf("\t- UDP: %d\n",basic_stat[UDP]);
-		printf("\t- ICMPv4: %d\n",basic_stat[ICMP4]);
-		printf("\t- ICMPv6: %d\n",basic_stat[ICMP6]);
-		printf("List of most use source ip addresses...\n");
-		conclude_stat(db,"src");
-		printf("List of most use destination ip addresses...\n");
-		conclude_stat(db,"dst");
+		// printf("There are %d IPv4 packets and %d IPv6 packets......\n",basic_stat[IPv4],basic_stat[IPv6]);
+		// printf("These are the number of packet type(layer 4 protocol) which has recorded....\n");
+		// printf("\t- TCP: %d\n",basic_stat[TCP]);
+		// printf("\t- UDP: %d\n",basic_stat[UDP]);
+		// printf("\t- ICMPv4: %d\n",basic_stat[ICMP4]);
+		// printf("\t- ICMPv6: %d\n",basic_stat[ICMP6]);
+		// printf("List of most use source ip addresses...\n");
+		// conclude_stat(db,"src");
+		// printf("List of most use destination ip addresses...\n");
+		// conclude_stat(db,"dst");
 		printf("\n\n\t\tThis progam has been record for %f seconds.....\n",time_taken);
-		printf("\t\tPort 0 mean it is other protocol (not tcp and udp)\n\n\n");
-		create_log(db,time_taken);
+		// printf("\t\tPort 0 mean it is other protocol (not tcp and udp)\n\n\n");
+		// create_log(db);
 		printf("Bye.....\n");
 		sqlite3_close(db);
 		exit(0);
@@ -174,6 +175,12 @@ decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,
 void
 print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 {
+	clock_t tmp_c = clock() - t;
+	double time_taken = ((double)tmp_c)/CLOCKS_PER_SEC;
+	//printf("%f\n",fmod(time_taken,60.0));
+	if(fmod(time_taken,60.0) == 0.0){
+		create_log(db);
+	}
 	uint16_t eth_type;
 	int l2_len;
 	int l3_len;
@@ -236,7 +243,7 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 		basic_stat[IPv6]++;
 		l3_len = sizeof(struct rte_ipv6_hdr);
 		ipv6_hdr = (struct rte_ipv6_hdr *)((char *)eth_hdr + l2_len);
-		printf("#IPv6 packet: %d\n",basic_stat[IPv6]);
+		//printf("#IPv6 packet: %d\n",basic_stat[IPv6]);
 		switch (ipv6_hdr->proto)
 		{
 		case 0x06:
@@ -424,9 +431,12 @@ lcore_main(void)
 		exit(0);
 	}
 	create_tbl(db);
-	printf("Do you want to print realtime packet detail?[y/N]: ");
-	scanf(" %c",&is_debug);
+	//printf("Do you want to print realtime packet detail?[y/N]: ");
+	//scanf(" %c",&is_debug);
+	is_debug = 'N';
 	t = clock();
+	clock_t tmp_c;
+	double time_taken;
 	for (;;) {
 		//Maybe I have to work around here.
 		
