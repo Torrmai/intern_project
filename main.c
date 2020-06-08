@@ -87,7 +87,6 @@ initHandler(int sig){
 		printf("List of most use destination ip addresses...\n");
 		conclude_stat(db,"dst");
 		printf("\n\n\t\tThis progam has been record for %f seconds.....\n",time_taken);
-		printf("\t\tThroughput of this session: %ld bytes\n",size);
 		printf("\t\tPort 0 mean it is other protocol (not tcp and udp)\n\n\n");
 		create_log(db,time_taken);
 		printf("Bye.....\n");
@@ -121,17 +120,17 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],
 			strcat(ipv6_addr_dst,":");
 		}
 	}
-	if(data_choice(db,ipv6_addr_src,"src",src_port)){
-		update_data(db,ipv6_addr_src,"src",s,src_port);
+	if(data_choice(db,ipv6_addr_src,"src",dst_port)){
+		update_data(db,ipv6_addr_src,"src",s,dst_port);
 	}
 	else{
-		insert_data(db,ipv6_addr_src,"src",src_port,s);
+		insert_data(db,ipv6_addr_src,"src",dst_port,s);
 	}
-	if(data_choice(db,ipv6_addr_dst,"dst",dst_port)){
-		update_data(db,ipv6_addr_dst,"dst",s,dst_port);
+	if(data_choice(db,ipv6_addr_dst,"dst",src_port)){
+		update_data(db,ipv6_addr_dst,"dst",s,src_port);
 	}
 	else{
-		insert_data(db,ipv6_addr_dst,"dst",dst_port,s);
+		insert_data(db,ipv6_addr_dst,"dst",src_port,s);
 	}
 	if(p == 'y' || p == 'Y'){
 		printf("%s ----> %s \n",ipv6_addr_src,ipv6_addr_dst);
@@ -156,17 +155,17 @@ decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,
 			(uint8_t)((ip_addr_dst >> 24) & 0xff)
 	);
 	//printf("choice ---->  %d\n",data_choice(db,ipv4_addr_src));
-	if(data_choice(db,ipv4_addr_src,"src",src_port)){
-		update_data(db,ipv4_addr_src,"src",s,src_port);
+	if(data_choice(db,ipv4_addr_src,"src",dst_port)){
+		update_data(db,ipv4_addr_src,"src",s,dst_port);
 	}
 	else{
-		insert_data(db,ipv4_addr_src,"src",src_port,s);
+		insert_data(db,ipv4_addr_src,"src",dst_port,s);
 	}
-	if(data_choice(db,ipv4_addr_dst,"dst",dst_port)){
-		update_data(db,ipv4_addr_dst,"dst",s,dst_port);
+	if(data_choice(db,ipv4_addr_dst,"dst",src_port)){
+		update_data(db,ipv4_addr_dst,"dst",s,src_port);
 	}
 	else{
-		insert_data(db,ipv4_addr_dst,"dst",dst_port,s);
+		insert_data(db,ipv4_addr_dst,"dst",src_port,s);
 	}
 	if(p == 'Y' || p == 'y'){
 		printf("%s ----> %s\n",ipv4_addr_src,ipv4_addr_dst);
