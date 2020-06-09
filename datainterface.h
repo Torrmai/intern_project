@@ -1,6 +1,7 @@
 #ifdef DATAINTERFACE
 #include <sqlite3.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include <stdint.h>
 int ch;
 void conclude_stat(sqlite3 *db,char *target);

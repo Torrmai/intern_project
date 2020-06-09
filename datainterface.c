@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <sys/stat.h>
 #include <sqlite3.h>
 #include <string.h>
 #include <stdlib.h>
@@ -54,42 +55,58 @@ void calculate_matrix(sqlite3 *db){
 }
 void create_log(sqlite3 *db){
    time_t t = time(NULL);
-   char fileName[100];
-   int stat;
+   struct stat st = {0};
+   char path[100];
+   char sep1[50];
+   char sep2[50];
+   char fileName[200];
+   char linCom[110];
+   int statt;
    char *err = 0;
    calculate_matrix(db);
    struct tm currtime = *localtime(&t);
-   sprintf(fileName,"%d-%d-%d-%d:%d:%d.csv",
-      currtime.tm_mday,currtime.tm_mon,(currtime.tm_year+1900),currtime.tm_hour,currtime.tm_min,currtime.tm_sec);
+   sprintf(path,"data/%d-%d/%d/%d",currtime.tm_mon,(currtime.tm_year+1900),currtime.tm_mday,currtime.tm_hour);
+   sprintf(sep1,"data/%d-%d",currtime.tm_mon,(currtime.tm_year+1900));
+   sprintf(sep2,"data/%d-%d/%d",currtime.tm_mon,(currtime.tm_year+1900),currtime.tm_mday);
+   if(stat(path,&st)== -1){
+      mkdir("data",0755);
+      mkdir(sep1,0755);
+      mkdir(sep2,0755);
+      mkdir(path,0755);
+      printf("Create folder...\n");
+   }
+   sprintf(fileName,"%s/%d:%d.csv",
+            path,currtime.tm_min,currtime.tm_sec);
    target_file = fopen(fileName,"w+");
    if(target_file == NULL){
       printf("Null file can't create file....\n");
+      exit(0);
    }else{
       fprintf(target_file,"-------record at %d:%d:%d------\n",currtime.tm_hour,currtime.tm_min,currtime.tm_sec);
       // fprintf(target_file,"-------format col1 ip\tcol2 port\tcol3 count\tcol4 sum of frame size------\n");
       fprintf(target_file,"-------------ip src statistic---------\n");
       char *comm = "select * from ip_stat_src "\
                    "order by count DESC";
-      stat = sqlite3_exec(db,comm,callback_printlog,0,&err);
-      if(stat != SQLITE_OK){
+      statt = sqlite3_exec(db,comm,callback_printlog,0,&err);
+      if(statt != SQLITE_OK){
          printf("err: %s\n",err);
       }
       fprintf(target_file,"-------------ip dst statistic---------\n");
       char *comm2 = "select * from ip_stat_dst "\
                     "order by count DESC";
-      stat = sqlite3_exec(db,comm2,callback_printlog,0,&err);
-      if(stat != SQLITE_OK){
+      statt = sqlite3_exec(db,comm2,callback_printlog,0,&err);
+      if(statt != SQLITE_OK){
          printf("err: %s\n",err);
       }
       printf("Log file: %s has been created successfully\n",fileName);
       fclose(target_file);
       //Now it's like triger function
-      stat = sqlite3_exec(db,"delete from ip_stat_src",callback_printdata,0,&err);
-      if(stat != SQLITE_OK){
+      statt = sqlite3_exec(db,"delete from ip_stat_src",callback_printdata,0,&err);
+      if(statt != SQLITE_OK){
          printf("err: %s\n",err);
       }
-      stat = sqlite3_exec(db,"delete from ip_stat_dst",callback_printdata,0,&err);
-      if(stat != SQLITE_OK){
+      statt = sqlite3_exec(db,"delete from ip_stat_dst",callback_printdata,0,&err);
+      if(statt != SQLITE_OK){
          printf("err: %s\n",err);
       }
    }
