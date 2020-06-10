@@ -159,7 +159,7 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 	double time_taken = ((double)tmp_c)/CLOCKS_PER_SEC;
 	//printf("%f\n",fmod(time_taken,60.0));
 	if(fmod(time_taken,60.0) == 0.0 && time_taken > 0){
-		printf("Recorded packets: %d\n",num_pac_rec);
+		//printf("Recorded packets: %d\n",num_pac_rec);
 		create_log(db,"src",num_pac_rec,size);
 		create_log(db,"dst",num_pac_rec,size);
 		num_pac_rec = 0;
@@ -189,6 +189,7 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 	{
 	case RTE_ETHER_TYPE_IPV4:
 		num_pac_rec++;
+		size += siz;
 		l3_len = sizeof(struct rte_ipv4_hdr);
 		ipv4_hdr = (struct rte_ipv4_hdr *)((char *)eth_hdr + l2_len);
 		if(ipv4_hdr->next_proto_id == 0x01){
@@ -222,6 +223,7 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 		break;
 	case RTE_ETHER_TYPE_IPV6:
 		num_pac_rec++;
+		size += siz;
 		l3_len = sizeof(struct rte_ipv6_hdr);
 		ipv6_hdr = (struct rte_ipv6_hdr *)((char *)eth_hdr + l2_len);
 		//printf("#IPv6 packet: %d\n",basic_stat[IPv6]);
@@ -423,7 +425,7 @@ lcore_main(void)
 			
 			for(i=0;i<nb_rx;i++){
 				print_decode_packet(bufs[i],is_debug,bufs[i]->pkt_len,db);
-				size += bufs[i]->pkt_len;
+				//size += bufs[i]->pkt_len;
 			}
 			if (unlikely(nb_rx == 0))
 				continue;
