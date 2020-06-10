@@ -87,9 +87,7 @@ initHandler(int sig){
 		// conclude_stat(db,"src");
 		// printf("List of most use destination ip addresses...\n");
 		// conclude_stat(db,"dst");
-		printf("\n\n\t\tThis progam has been record for %f seconds.....\n",time_taken);
-		// printf("\t\tPort 0 mean it is other protocol (not tcp and udp)\n\n\n");
-		// create_log(db);
+		printf("\n\n\t\tThis session has been record for %f seconds.....\n",time_taken);
 		printf("Bye.....\n");
 		sqlite3_close(db);
 		exit(0);
@@ -125,13 +123,13 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],
 		update_data(db,ipv6_addr_src,"src",s,dst_port);
 	}
 	else{
-		insert_data(db,ipv6_addr_src,"src",dst_port,s);
+		insert_data(db,ipv6_addr_src,"src",dst_port,s,"ipv6");
 	}
 	if(data_choice(db,ipv6_addr_dst,"dst",src_port)){
 		update_data(db,ipv6_addr_dst,"dst",s,src_port);
 	}
 	else{
-		insert_data(db,ipv6_addr_dst,"dst",src_port,s);
+		insert_data(db,ipv6_addr_dst,"dst",src_port,s,"ipv6");
 	}
 	if(p == 'y' || p == 'Y'){
 		printf("%s ----> %s \n",ipv6_addr_src,ipv6_addr_dst);
@@ -160,13 +158,13 @@ decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,
 		update_data(db,ipv4_addr_src,"src",s,dst_port);
 	}
 	else{
-		insert_data(db,ipv4_addr_src,"src",dst_port,s);
+		insert_data(db,ipv4_addr_src,"src",dst_port,s,"ipv4");
 	}
 	if(data_choice(db,ipv4_addr_dst,"dst",src_port)){
 		update_data(db,ipv4_addr_dst,"dst",s,src_port);
 	}
 	else{
-		insert_data(db,ipv4_addr_dst,"dst",src_port,s);
+		insert_data(db,ipv4_addr_dst,"dst",src_port,s,"ipv4");
 	}
 	if(p == 'Y' || p == 'y'){
 		printf("%s ----> %s\n",ipv4_addr_src,ipv4_addr_dst);
@@ -178,8 +176,9 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 	clock_t tmp_c = clock() - t;
 	double time_taken = ((double)tmp_c)/CLOCKS_PER_SEC;
 	//printf("%f\n",fmod(time_taken,60.0));
-	if(fmod(time_taken,60.0) == 0.0){
-		create_log(db);
+	if(fmod(time_taken,60.0) == 0.0 && time_taken > 0){
+		create_log(db,"src");
+		create_log(db,"dst");
 	}
 	uint16_t eth_type;
 	int l2_len;

@@ -53,10 +53,11 @@ void calculate_matrix(sqlite3 *db){
       printf("err: %s\n",err);
    }      
 }
-void create_log(sqlite3 *db){
+void create_log(sqlite3 *db,char *target){//,char *sort_option){ reserve for near future
    time_t t = time(NULL);
    struct stat st = {0};
    char path[100];
+   char tmp1[9];
    char sep1[50];
    char sep2[50];
    char fileName[200];
@@ -65,11 +66,13 @@ void create_log(sqlite3 *db){
    char *err = 0;
    calculate_matrix(db);
    struct tm currtime = *localtime(&t);
-   sprintf(path,"data/%d-%d/%d/%d",currtime.tm_mon,(currtime.tm_year+1900),currtime.tm_mday,currtime.tm_hour);
-   sprintf(sep1,"data/%d-%d",currtime.tm_mon,(currtime.tm_year+1900));
-   sprintf(sep2,"data/%d-%d/%d",currtime.tm_mon,(currtime.tm_year+1900),currtime.tm_mday);
+   sprintf(path,"data/%s/%d-%d/%d/%d",target,currtime.tm_mon,(currtime.tm_year+1900),currtime.tm_mday,currtime.tm_hour);
+   sprintf(tmp1,"data/%s",target);
+   sprintf(sep1,"data/%s/%d-%d",target,currtime.tm_mon,(currtime.tm_year+1900));
+   sprintf(sep2,"data/%s/%d-%d/%d",target,currtime.tm_mon,(currtime.tm_year+1900),currtime.tm_mday);
    if(stat(path,&st)== -1){
       mkdir("data",0755);
+      mkdir(tmp1,0755);
       mkdir(sep1,0755);
       mkdir(sep2,0755);
       mkdir(path,0755);
@@ -82,30 +85,19 @@ void create_log(sqlite3 *db){
       printf("Null file can't create file....\n");
       exit(0);
    }else{
-      fprintf(target_file,"-------record at %d:%d:%d------\n",currtime.tm_hour,currtime.tm_min,currtime.tm_sec);
-      // fprintf(target_file,"-------format col1 ip\tcol2 port\tcol3 count\tcol4 sum of frame size------\n");
-      fprintf(target_file,"-------------ip src statistic---------\n");
-      char *comm = "select * from ip_stat_src "\
-                   "order by count DESC";
+      fprintf(target_file,"ip_addr,port,count,sum of frame size,ip version,packet/s,Throughput,\n");
+      char comm[100];
+      sprintf(comm,"select * from ip_stat_%s "\
+                   "order by count DESC",target);
       statt = sqlite3_exec(db,comm,callback_printlog,0,&err);
       if(statt != SQLITE_OK){
          printf("err: %s\n",err);
       }
-      fprintf(target_file,"-------------ip dst statistic---------\n");
-      char *comm2 = "select * from ip_stat_dst "\
-                    "order by count DESC";
-      statt = sqlite3_exec(db,comm2,callback_printlog,0,&err);
-      if(statt != SQLITE_OK){
-         printf("err: %s\n",err);
-      }
-      printf("Log file: %s has been created successfully\n",fileName);
       fclose(target_file);
+      printf("Log file: %s has been created successfully\n",fileName);
       //Now it's like triger function
-      statt = sqlite3_exec(db,"delete from ip_stat_src",callback_printdata,0,&err);
-      if(statt != SQLITE_OK){
-         printf("err: %s\n",err);
-      }
-      statt = sqlite3_exec(db,"delete from ip_stat_dst",callback_printdata,0,&err);
+      sprintf(comm,"delete from ip_stat_%s",target);
+      statt = sqlite3_exec(db,comm,callback_printdata,0,&err);
       if(statt != SQLITE_OK){
          printf("err: %s\n",err);
       }
@@ -162,16 +154,16 @@ int data_choice(sqlite3 *db,char *ip,char *target,uint16_t port){
    }
    return ch;
 }
-void insert_data(sqlite3 *db,char *ip,char *target,uint16_t port,uint32_t pkt_size)
+void insert_data(sqlite3 *db,char *ip,char *target,uint16_t port,uint32_t pkt_size,char *type)
 {
    char sqlcom[300];
    sqlcom[0] = 0;
    int stat;
    char *err = 0;
-   sprintf(sqlcom,"insert into ip_stat_%s (ip_addr,port,count,sum_tot_size) "\
-               "select * from (select '%s',%d,1.0,%ld) as tmp "\
+   sprintf(sqlcom,"insert into ip_stat_%s (ip_addr,port,count,sum_tot_size,ip_type) "\
+               "select * from (select '%s',%d,1.0,%ld,'%s') as tmp "\
                "where not exists (select ip_addr from ip_stat_%s where ip_addr = '%s' and port = %d) limit 1"\
-               ,target,ip,port,pkt_size,target,ip,port);
+               ,target,ip,port,pkt_size,type,target,ip,port);
    stat = sqlite3_exec(db,sqlcom,callback_printdata,0,&err);
    if (stat != SQLITE_OK)
    {
@@ -190,6 +182,7 @@ void create_tbl(sqlite3 *db){
          "port int not null,"\
          "count double not null,"\
          "sum_tot_size double not null,"\
+         "ip_type text,"\
          "pac_per_sec double,"\
          "tp double,"\
          "primary key (ip_addr,port))");
@@ -207,6 +200,7 @@ void create_tbl(sqlite3 *db){
          "port int not null,"\
          "count double not null,"\
          "sum_tot_size double not null,"\
+         "ip_type text,"\
          "pac_per_sec double,"\
          "tp double,"\
          "primary key (ip_addr,port))");
