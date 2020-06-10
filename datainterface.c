@@ -53,7 +53,7 @@ void calculate_matrix(sqlite3 *db){
       printf("err: %s\n",err);
    }      
 }
-void create_log(sqlite3 *db,char *target){//,char *sort_option){ reserve for near future
+void create_log(sqlite3 *db,char *target,unsigned long np,uint32_t tot_s){//,char *sort_option){ reserve for near future
    time_t t = time(NULL);
    struct stat st = {0};
    char path[100];
@@ -76,10 +76,10 @@ void create_log(sqlite3 *db,char *target){//,char *sort_option){ reserve for nea
       mkdir(sep1,0755);
       mkdir(sep2,0755);
       mkdir(path,0755);
-      printf("Create folder...\n");
+      printf("Create folder:%s....\n",path);
    }
-   sprintf(fileName,"%s/%d:%d.csv",
-            path,currtime.tm_min,currtime.tm_sec);
+   sprintf(fileName,"%s/%d:%d_%d-%d.csv",
+            path,currtime.tm_min,currtime.tm_sec,np,tot_s);
    target_file = fopen(fileName,"w+");
    if(target_file == NULL){
       printf("Null file can't create file....\n");

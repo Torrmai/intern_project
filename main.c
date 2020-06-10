@@ -160,9 +160,10 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 	//printf("%f\n",fmod(time_taken,60.0));
 	if(fmod(time_taken,60.0) == 0.0 && time_taken > 0){
 		printf("Recorded packets: %d\n",num_pac_rec);
-		create_log(db,"src");
-		create_log(db,"dst");
+		create_log(db,"src",num_pac_rec,size);
+		create_log(db,"dst",num_pac_rec,size);
 		num_pac_rec = 0;
+		size = 0;
 	}
 	uint16_t eth_type;
 	int l2_len;
@@ -422,7 +423,6 @@ lcore_main(void)
 			
 			for(i=0;i<nb_rx;i++){
 				print_decode_packet(bufs[i],is_debug,bufs[i]->pkt_len,db);
-				//printf("packet len is %d bytes\n",bufs[i]->pkt_len);
 				size += bufs[i]->pkt_len;
 			}
 			if (unlikely(nb_rx == 0))
