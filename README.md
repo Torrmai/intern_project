@@ -29,3 +29,8 @@
     2. The file name format will be like this
         - min(in that hour):sec(in that min)_no of packets in 1 min-tot frame size in 1 min.csv
         - forexample 1:1_42069-555555.csv
+    3. Log format
+        1. There are 7 column in every log
+        2. The information of each columns
+            - ip addr,destination port,no of packet,sum of frame size,ip version,packet/s(avg),Throughput
+                -  ***no of packet and sum of frame size are stored only the packet that has this ip
