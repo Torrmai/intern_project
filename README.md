@@ -17,4 +17,20 @@
 - Please study about the dpdk parameter
     - link about parameter http://doc.dpdk.org/guides/linux_gsg/linux_eal_parameters.html
 
-## This program is base on the dpdk example(rxtx_callback)
+# Log file format
+1. Destination folder
+    1. It's will live in the relative path that you run the session
+    2. the storing path will be like this
+        - PATH_THAT_YOU_CALLED_PROGRAM/data/src/month-year/date(in that month)/hour(in 24 hour format)
+        - if you interest in dst just change src to dst
+        - forexample if you run in your home and you want to see src ip log in noon ~/data/src/06-2020/09/12
+2. File name and its format
+    1. This program will save log file in csv format
+    2. The file name format will be like this
+        - min(in that hour):sec(in that min)_no of packets in 1 min-tot frame size in 1 min.csv
+        - forexample 1:1_42069-555555.csv
+    3. Log format
+        1. There are 7 column in every log
+        2. The information of each columns
+            - ip addr,destination port,no of packet,sum of frame size,ip version,packet/s(avg),Throughput
+                -  ***no of packet and sum of frame size are stored only the packet that has this ip
