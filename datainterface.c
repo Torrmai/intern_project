@@ -61,10 +61,10 @@ void create_log(sqlite3 *db,unsigned long np,uint32_t tot_s){//,char *sort_optio
    char *err = 0;
    calculate_matrix(db);
    struct tm currtime = *localtime(&t);
-   sprintf(path,"data/%d/%d/%d/%d",(currtime.tm_year+1900),currtime.tm_mon,currtime.tm_mday,currtime.tm_hour);
+   sprintf(path,"data/%d/%d/%d/%d",(currtime.tm_year+1900),currtime.tm_mon+1,currtime.tm_mday,currtime.tm_hour);
    sprintf(tmp1,"data/%d",(currtime.tm_year+1900));
-   sprintf(sep1,"data/%d/%d",(currtime.tm_year+1900),currtime.tm_mon);
-   sprintf(sep2,"data/%d/%d/%d",(currtime.tm_year+1900),currtime.tm_mon,currtime.tm_mday);
+   sprintf(sep1,"data/%d/%d",(currtime.tm_year+1900),currtime.tm_mon+1);
+   sprintf(sep2,"data/%d/%d/%d",(currtime.tm_year+1900),currtime.tm_mon+1,currtime.tm_mday);
    if(stat(path,&st)== -1){
       mkdir("data",0755);
       mkdir(tmp1,0755);
