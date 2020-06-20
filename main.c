@@ -101,17 +101,17 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],
 			strcat(ipv6_addr_dst,":");
 		}
 	}
-	if(data_choice(db,ipv6_addr_src,"src",dst_port)){
-		update_data(db,ipv6_addr_src,"src",s,dst_port);
+	if(data_choice(db,ipv6_addr_src,0,dst_port)){
+		update_data(db,ipv6_addr_src,0,s,dst_port);
 	}
 	else{
-		insert_data(db,ipv6_addr_src,"src",dst_port,s,"ipv6");
+		insert_data(db,ipv6_addr_src,0,dst_port,s,1);
 	}
-	if(data_choice(db,ipv6_addr_dst,"dst",src_port)){
-		update_data(db,ipv6_addr_dst,"dst",s,src_port);
+	if(data_choice(db,ipv6_addr_dst,1,src_port)){
+		update_data(db,ipv6_addr_dst,1,s,src_port);
 	}
 	else{
-		insert_data(db,ipv6_addr_dst,"dst",src_port,s,"ipv6");
+		insert_data(db,ipv6_addr_dst,1,src_port,s,1);
 	}
 	if(p == 'y' || p == 'Y'){
 		printf("%s ----> %s \n",ipv6_addr_src,ipv6_addr_dst);
@@ -136,17 +136,17 @@ decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,
 			(uint8_t)((ip_addr_dst >> 24) & 0xff)
 	);
 	//printf("choice ---->  %d\n",data_choice(db,ipv4_addr_src));
-	if(data_choice(db,ipv4_addr_src,"src",dst_port)){
-		update_data(db,ipv4_addr_src,"src",s,dst_port);
+	if(data_choice(db,ipv4_addr_src,0,dst_port)){
+		update_data(db,ipv4_addr_src,0,s,dst_port);
 	}
 	else{
-		insert_data(db,ipv4_addr_src,"src",dst_port,s,"ipv4");
+		insert_data(db,ipv4_addr_src,0,dst_port,s,0);
 	}
-	if(data_choice(db,ipv4_addr_dst,"dst",src_port)){
-		update_data(db,ipv4_addr_dst,"dst",s,src_port);
+	if(data_choice(db,ipv4_addr_dst,1,src_port)){
+		update_data(db,ipv4_addr_dst,1,s,src_port);
 	}
 	else{
-		insert_data(db,ipv4_addr_dst,"dst",src_port,s,"ipv4");
+		insert_data(db,ipv4_addr_dst,1,src_port,s,0);
 	}
 	if(p == 'Y' || p == 'y'){
 		printf("%s ----> %s\n",ipv4_addr_src,ipv4_addr_dst);
@@ -160,8 +160,7 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 	//printf("%f\n",fmod(time_taken,60.0));
 	if(fmod(time_taken,60.0) == 0.0 && time_taken > 0){
 		//printf("Recorded packets: %d\n",num_pac_rec);
-		create_log(db,"src",num_pac_rec,size);
-		create_log(db,"dst",num_pac_rec,size);
+		create_log(db,num_pac_rec,size);
 		num_pac_rec = 0;
 		size = 0;
 	}
