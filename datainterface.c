@@ -22,12 +22,15 @@ static int callback_printdata(void *data,int argc,char **argv,char **azColName)
 }
 static int callback_printlog(void *data,int argc,char **argv,char **azColName)
 {
-   for(int i=0;i<argc;i++){
+   for(int i=0;i<4;i++){
+      fprintf(target_file,"%s,",argv[i]?argv[i]:"NULL");
+   }
+   for(int i=6;i<argc;i++){
       if(i<argc-1){
          fprintf(target_file,"%s,",argv[i]?argv[i]:"NULL");
       }
       else{
-         fprintf(target_file,"%s,",argv[i]?argv[i]:"NULL");
+         fprintf(target_file,"%s",argv[i]?argv[i]:"NULL");
       }
    }
    fprintf(target_file,"\n");
@@ -80,7 +83,7 @@ void create_log(sqlite3 *db,unsigned long np,uint32_t tot_s){//,char *sort_optio
       printf("Null file can't create file....\n");
       exit(0);
    }else{
-      fprintf(target_file,"ip_addr,port,ip version,end point,count,sum of frame size,packet/s,Throughput\n");
+      fprintf(target_file,"ip_addr,port,ip version,end point,packet(pps),Throughput(bps)\n");
       char comm[100];
       sprintf(comm,"select * from ip_stat "\
                    "order by count DESC");
@@ -183,8 +186,8 @@ void create_tbl(sqlite3 *db){
          "end_point int not null,"\
          "count double not null,"\
          "sum_tot_size double not null,"\
-         "pac_per_sec double,"\
-         "tp double,"\
+         "pac_per_sec decimal(7,2),"\
+         "tp decimal(7,2),"\
          "primary key (ip_addr,port,ip_type,end_point))");
    stat = sqlite3_exec(db,comm,callback_printdata,0,&err);
    if (stat != SQLITE_OK)
