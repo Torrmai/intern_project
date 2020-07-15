@@ -80,7 +80,7 @@ initHandler(int sig){
 }
 static inline void
 decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],
-			uint16_t src_port,uint16_t dst_port,uint32_t s,char p,sqlite3 *db)
+			uint16_t src_port,uint16_t dst_port,uint32_t s,char p,sqlite3 *db,int proto)
 {
 	char ipv6_addr_src[40];
 	char ipv6_addr_dst[40];
@@ -101,17 +101,17 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],
 			strcat(ipv6_addr_dst,":");
 		}
 	}
-	if(data_choice(db,ipv6_addr_src,0,dst_port)){
-		update_data(db,ipv6_addr_src,0,s,dst_port);
+	if(data_choice(db,ipv6_addr_src,src_port,dst_port,proto)){
+		update_data(db,ipv6_addr_src,src_port,s,dst_port,proto);
 	}
 	else{
-		insert_data(db,ipv6_addr_src,0,dst_port,s,1);
+		insert_data(db,ipv6_addr_src,src_port,dst_port,s,1,proto);
 	}
-	if(data_choice(db,ipv6_addr_dst,1,src_port)){
-		update_data(db,ipv6_addr_dst,1,s,src_port);
+	if(data_choice(db,ipv6_addr_dst,dst_port,src_port,proto)){
+		update_data(db,ipv6_addr_dst,dst_port,s,src_port,proto);
 	}
 	else{
-		insert_data(db,ipv6_addr_dst,1,src_port,s,1);
+		insert_data(db,ipv6_addr_dst,dst_port,src_port,s,1,proto);
 	}
 	if(p == 'y' || p == 'Y'){
 		printf("%s ----> %s \n",ipv6_addr_src,ipv6_addr_dst);
@@ -120,7 +120,7 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],
 //for printing ipv4 addr.....
 static inline void
 decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,
-			uint16_t src_port,uint16_t dst_port,uint32_t s,char p,sqlite3 *db){
+			uint16_t src_port,uint16_t dst_port,uint32_t s,char p,sqlite3 *db,int proto){
 	char ipv4_addr_src[16];//perpare for sending to sql
 	char ipv4_addr_dst[16];
 	sprintf(ipv4_addr_src,"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
@@ -136,17 +136,17 @@ decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,
 			(uint8_t)((ip_addr_dst >> 24) & 0xff)
 	);
 	//printf("choice ---->  %d\n",data_choice(db,ipv4_addr_src));
-	if(data_choice(db,ipv4_addr_src,0,dst_port)){
-		update_data(db,ipv4_addr_src,0,s,dst_port);
+	if(data_choice(db,ipv4_addr_src,src_port,dst_port,proto)){
+		update_data(db,ipv4_addr_src,src_port,s,dst_port,proto);
 	}
 	else{
-		insert_data(db,ipv4_addr_src,0,dst_port,s,0);
+		insert_data(db,ipv4_addr_src,src_port,dst_port,s,0,proto);
 	}
-	if(data_choice(db,ipv4_addr_dst,1,src_port)){
-		update_data(db,ipv4_addr_dst,1,s,src_port);
+	if(data_choice(db,ipv4_addr_dst,dst_port,src_port,proto)){
+		update_data(db,ipv4_addr_dst,dst_port,s,src_port,proto);
 	}
 	else{
-		insert_data(db,ipv4_addr_dst,1,src_port,s,0);
+		insert_data(db,ipv4_addr_dst,1,src_port,s,0,proto);
 	}
 	if(p == 'Y' || p == 'y'){
 		printf("%s ----> %s\n",ipv4_addr_src,ipv4_addr_dst);
@@ -218,7 +218,7 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 			port_dst = 0;
 			sprintf(protocol_msg,"\t--> protocol(next layer): %d (Will add into data base later.....)\n",ipv4_hdr->next_proto_id);
 		}
-		decode_ip(ipv4_hdr->src_addr,ipv4_hdr->dst_addr,port_src,port_dst,siz,p,db);
+		decode_ip(ipv4_hdr->src_addr,ipv4_hdr->dst_addr,port_src,port_dst,siz,p,db,ipv4_hdr->next_proto_id);
 		break;
 	case RTE_ETHER_TYPE_IPV6:
 		num_pac_rec++;
@@ -249,7 +249,7 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 		default:
 			break;
 		}
-		decode_ipv6(ipv6_hdr->src_addr,ipv6_hdr->dst_addr,port_src,port_dst,siz,p,db);
+		decode_ipv6(ipv6_hdr->src_addr,ipv6_hdr->dst_addr,port_src,port_dst,siz,p,db,ipv6_hdr->proto);
 		break;
 	default:
 		toggle_print = 0;

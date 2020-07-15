@@ -22,10 +22,7 @@ static int callback_printdata(void *data,int argc,char **argv,char **azColName)
 }
 static int callback_printlog(void *data,int argc,char **argv,char **azColName)
 {
-   for(int i=0;i<4;i++){
-      fprintf(target_file,"%s,",argv[i]?argv[i]:"NULL");
-   }
-   for(int i=6;i<argc;i++){
+   for(int i=0;i<argc;i++){
       if(i<argc-1){
          fprintf(target_file,"%s,",argv[i]?argv[i]:"NULL");
       }
@@ -45,7 +42,7 @@ static int fetch_data(void *data,int argc,char **argv,char **colname){
 void calculate_matrix(sqlite3 *db){
    int stat;
    char *err = 0;
-   stat = sqlite3_exec(db,"update ip_stat set pac_per_sec = count/60, tp = sum_tot_size/60",
+   stat = sqlite3_exec(db,"update ip_stat set pac_per_sec = count/60.0, tp = sum_tot_size/60.0",
                         callback_printdata,0,&err);
    if(stat != SQLITE_OK){
       printf("err: %s\n",err);
@@ -83,9 +80,9 @@ void create_log(sqlite3 *db,unsigned long np,uint32_t tot_s){//,char *sort_optio
       printf("Null file can't create file....\n");
       exit(0);
    }else{
-      fprintf(target_file,"ip_addr,port,ip version,end point,packet(pps),Throughput(bps)\n");
+      fprintf(target_file,"ip_addr,dst_port,ip version,src_port,packet(pps),Throughput(bps),l4_pro\n");
       char comm[100];
-      sprintf(comm,"select * from ip_stat "\
+      sprintf(comm,"select ip_addr,port,ip_type,end_point,round(pac_per_sec,2),round(tp,2),l4_pro from ip_stat "\
                    "order by count DESC");
       statt = sqlite3_exec(db,comm,callback_printlog,0,&err);
       if(statt != SQLITE_OK){
@@ -123,11 +120,11 @@ void conclude_stat(sqlite3 *db,char *target){
       printf("err: %s\n",err);
    }*/
 }
-void update_data(sqlite3 *db,char *data,int target,uint32_t pkt_size,uint16_t port){
+void update_data(sqlite3 *db,char *data,int target,uint32_t pkt_size,uint16_t port,int l4_pro){
    char com[200];
    com[0] = 0;
-   sprintf(com,"update ip_stat set count = count + 1.0,sum_tot_size = sum_tot_size + %d where ip_addr = '%s' and port = %d and end_point = %d"
-            ,pkt_size,data,port,target);
+   sprintf(com,"update ip_stat set count = count + 1.0,sum_tot_size = sum_tot_size + %d where ip_addr = '%s' and port = %d and end_point = %d and l4_pro = %d"
+            ,pkt_size,data,port,target,l4_pro);
    int stat;
    char *err = 0;
    stat = sqlite3_exec(db,com,callback_printdata,0,&err);
@@ -139,11 +136,11 @@ void update_data(sqlite3 *db,char *data,int target,uint32_t pkt_size,uint16_t po
       sqlite3_free(err);
    }
 }
-int data_choice(sqlite3 *db,char *ip,int target,uint16_t port){
+int data_choice(sqlite3 *db,char *ip,int target,uint16_t port,int l4_pro){
    const char sqlcom[200];
    int stat;
    char *err = 0;
-   sprintf(sqlcom,"select count(*) from ip_stat where ip_addr = '%s' and port = %d and end_point = %d",ip,port,target);
+   sprintf(sqlcom,"select count(*) from ip_stat where ip_addr = '%s' and port = %d and end_point = %d and l4_pro =%d",ip,port,target,l4_pro);
    stat = sqlite3_exec(db,sqlcom,fetch_data,0,&err);
    if (stat != SQLITE_OK)
    {
@@ -154,17 +151,17 @@ int data_choice(sqlite3 *db,char *ip,int target,uint16_t port){
    }
    return ch;
 }
-void insert_data(sqlite3 *db,char *ip,int target,uint16_t port,uint32_t pkt_size,int type)
+void insert_data(sqlite3 *db,char *ip,int target,uint16_t port,uint32_t pkt_size,int type,int l4_pro)
 {
    char sqlcom[300];
    sqlcom[0] = 0;
    int stat;
    char *err = 0;
-   sprintf(sqlcom,"insert into ip_stat (ip_addr,port,ip_type,end_point,count,sum_tot_size) "\
-               "select * from (select '%s',%d,%d,%d,1.0,%ld) as tmp "\ 
+   sprintf(sqlcom,"insert into ip_stat (ip_addr,port,ip_type,end_point,count,sum_tot_size,l4_pro) "\
+               "select * from (select '%s',%d,%d,%d,1.0,%ld,%d) as tmp "\ 
                "where not exists (select ip_addr from ip_stat where ip_addr = '%s' and port = %d"\
                " and end_point = %d) limit 1"\
-               ,ip,port,type,target,pkt_size,ip,port,target);
+               ,ip,port,type,target,pkt_size,l4_pro,ip,port,target);
    stat = sqlite3_exec(db,sqlcom,callback_printdata,0,&err);
    if (stat != SQLITE_OK)
    {
@@ -186,8 +183,9 @@ void create_tbl(sqlite3 *db){
          "end_point int not null,"\
          "count double not null,"\
          "sum_tot_size double not null,"\
-         "pac_per_sec decimal(7,2),"\
-         "tp decimal(7,2),"\
+         "pac_per_sec double,"\
+         "tp double,"\
+         "l4_pro int,"\
          "primary key (ip_addr,port,ip_type,end_point))");
    stat = sqlite3_exec(db,comm,callback_printdata,0,&err);
    if (stat != SQLITE_OK)
