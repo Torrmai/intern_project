@@ -78,6 +78,30 @@ initHandler(int sig){
 		signal(SIGINT,initHandler);
 	
 }
+static inline int
+set_roles(uint32_t port,uint8_t flag,int who){
+	if(flag != 0){
+		if(flag == RTE_TCP_SYN_FLAG && !who){
+			return 1;
+		}
+		else{
+			if(port < 1024 ){//wait for implementing port search
+				return 0;
+			}
+			else{
+				return 1;
+			}
+		}
+	}
+	else{
+		if(port < 1024){//wait for implementing port search
+			return 0;
+		}
+		else{
+			return 1;
+		}
+	}
+}
 static inline void
 decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],
 			uint16_t src_port,uint16_t dst_port,uint32_t s,char p,sqlite3 *db,int proto)
@@ -105,13 +129,13 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],
 		update_data(db,ipv6_addr_src,src_port,s,dst_port,proto);
 	}
 	else{
-		insert_data(db,ipv6_addr_src,src_port,dst_port,s,1,proto);
+		insert_data(db,ipv6_addr_src,src_port,dst_port,s,6,proto);
 	}
 	if(data_choice(db,ipv6_addr_dst,dst_port,src_port,proto)){
 		update_data(db,ipv6_addr_dst,dst_port,s,src_port,proto);
 	}
 	else{
-		insert_data(db,ipv6_addr_dst,dst_port,src_port,s,1,proto);
+		insert_data(db,ipv6_addr_dst,dst_port,src_port,s,6,proto);
 	}
 	if(p == 'y' || p == 'Y'){
 		printf("%s ----> %s \n",ipv6_addr_src,ipv6_addr_dst);
@@ -120,7 +144,7 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],
 //for printing ipv4 addr.....
 static inline void
 decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,
-			uint16_t src_port,uint16_t dst_port,uint32_t s,char p,sqlite3 *db,int proto){
+			uint16_t src_port,uint16_t dst_port,uint32_t s,char p,sqlite3 *db,int proto,uint8_t tcp_flag){
 	char ipv4_addr_src[16];//perpare for sending to sql
 	char ipv4_addr_dst[16];
 	sprintf(ipv4_addr_src,"%" PRIu8 ".%" PRIu8 ".%" PRIu8 ".%" PRIu8,
@@ -136,17 +160,32 @@ decode_ip(const uint32_t ip_addr_src,const uint32_t ip_addr_dst,
 			(uint8_t)((ip_addr_dst >> 24) & 0xff)
 	);
 	//printf("choice ---->  %d\n",data_choice(db,ipv4_addr_src));
-	if(data_choice(db,ipv4_addr_src,src_port,dst_port,proto)){
-		update_data(db,ipv4_addr_src,src_port,s,dst_port,proto);
+	//temporary implementation :)
+	int role_src,role_dst;//Server =  0,Client = 1
+	role_src = set_roles(src_port,tcp_flag,0);
+	role_dst = set_roles(dst_port,tcp_flag,1);
+	/*if(src_port<1024){
+		role_src = 0; 
 	}
 	else{
-		insert_data(db,ipv4_addr_src,src_port,dst_port,s,0,proto);
+		role_src = 1; 
 	}
-	if(data_choice(db,ipv4_addr_dst,dst_port,src_port,proto)){
-		update_data(db,ipv4_addr_dst,dst_port,s,src_port,proto);
+	if(dst_port<1024){
+		role_dst = 0;
+	}
+	else{role_dst = 1;}*/
+	//temporary implementation :)
+	if(data_choice(db,ipv4_addr_src,role_src,dst_port,proto)){
+		update_data(db,ipv4_addr_src,role_src,s,dst_port,proto);
 	}
 	else{
-		insert_data(db,ipv4_addr_dst,1,src_port,s,0,proto);
+		insert_data(db,ipv4_addr_src,role_src,dst_port,s,4,proto);//IPv4 = 4
+	}
+	if(data_choice(db,ipv4_addr_dst,src_port,role_dst,proto)){
+		update_data(db,ipv4_addr_dst,src_port,s,role_dst,proto);
+	}
+	else{
+		insert_data(db,ipv4_addr_dst,role_dst,src_port,s,4,proto);
 	}
 	if(p == 'Y' || p == 'y'){
 		printf("%s ----> %s\n",ipv4_addr_src,ipv4_addr_dst);
@@ -165,6 +204,7 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 		size = 0;
 	}
 	uint16_t eth_type;
+	uint8_t tcp_flag;
 	int l2_len;
 	int l3_len;
 	int toggle_print = 1;
@@ -183,6 +223,7 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 	l2_len = sizeof(struct rte_ether_hdr);
 	char protocol_msg[100];
 	uint16_t port_src,port_dst;
+	tcp_flag = 0;
 	//make sure that it is a right packet type to decode
 	switch (eth_type)
 	{
@@ -211,6 +252,7 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 			tcp_hdr_v4 = (struct rte_tcp_hdr *)((char *)ipv4_hdr + l3_len);
 			port_src = tcp_hdr_v4->src_port;
 			port_dst = tcp_hdr_v4->dst_port;
+			tcp_flag = tcp_hdr_v4->tcp_flags;
 			sprintf(protocol_msg,"\t--> protocol(next layer): TCP\n");
 		}
 		else{
@@ -218,7 +260,7 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 			port_dst = 0;
 			sprintf(protocol_msg,"\t--> protocol(next layer): %d (Will add into data base later.....)\n",ipv4_hdr->next_proto_id);
 		}
-		decode_ip(ipv4_hdr->src_addr,ipv4_hdr->dst_addr,port_src,port_dst,siz,p,db,ipv4_hdr->next_proto_id);
+		decode_ip(ipv4_hdr->src_addr,ipv4_hdr->dst_addr,port_src,port_dst,siz,p,db,ipv4_hdr->next_proto_id,tcp_flag);
 		break;
 	case RTE_ETHER_TYPE_IPV6:
 		num_pac_rec++;

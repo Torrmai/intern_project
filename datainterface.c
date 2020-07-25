@@ -80,7 +80,7 @@ void create_log(sqlite3 *db,unsigned long np,uint32_t tot_s){//,char *sort_optio
       printf("Null file can't create file....\n");
       exit(0);
    }else{
-      fprintf(target_file,"ip_addr,dst_port,ip version,src_port,packet(pps),Throughput(bps),l4_pro\n");
+      fprintf(target_file,"ip_addr,dst_port,ip version,end point,packet(pps),Throughput(bps),l4_pro\n");
       char comm[100];
       sprintf(comm,"select ip_addr,port,ip_type,end_point,round(pac_per_sec,2),round(tp,2),l4_pro from ip_stat "\
                    "order by count DESC");
@@ -186,6 +186,7 @@ void create_tbl(sqlite3 *db){
          "pac_per_sec double,"\
          "tp double,"\
          "l4_pro int,"\
+         "match_net int,"
          "primary key (ip_addr,port,ip_type,end_point))");
    stat = sqlite3_exec(db,comm,callback_printdata,0,&err);
    if (stat != SQLITE_OK)
