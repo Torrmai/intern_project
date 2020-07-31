@@ -104,7 +104,7 @@ set_roles(uint32_t port,uint8_t flag,int who){
 }
 static inline void
 decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],
-			uint16_t src_port,uint16_t dst_port,uint32_t s,char p,sqlite3 *db,int proto)
+			uint16_t src_port,uint16_t dst_port,uint32_t s,char p,sqlite3 *db,int proto,uint8_t tcp_flag)
 {
 	char ipv6_addr_src[40];
 	char ipv6_addr_dst[40];
@@ -125,17 +125,20 @@ decode_ipv6(const uint8_t ip_addr_src[],const uint8_t ip_addr_dst[],
 			strcat(ipv6_addr_dst,":");
 		}
 	}
-	if(data_choice(db,ipv6_addr_src,src_port,dst_port,proto)){
-		update_data(db,ipv6_addr_src,src_port,s,dst_port,proto);
+	int role_src,role_dst;//Server =  0,Client = 1
+	role_src = set_roles(src_port,tcp_flag,0);
+	role_dst = set_roles(dst_port,tcp_flag,1);
+	if(data_choice(db,ipv6_addr_src,role_src,dst_port,proto)){
+		update_data(db,ipv6_addr_src,role_src,s,dst_port,proto);
 	}
 	else{
-		insert_data(db,ipv6_addr_src,src_port,dst_port,s,6,proto);
+		insert_data(db,ipv6_addr_src,role_src,dst_port,s,6,proto);
 	}
-	if(data_choice(db,ipv6_addr_dst,dst_port,src_port,proto)){
-		update_data(db,ipv6_addr_dst,dst_port,s,src_port,proto);
+	if(data_choice(db,ipv6_addr_dst,role_dst,src_port,proto)){
+		update_data(db,ipv6_addr_dst,role_dst,s,src_port,proto);
 	}
 	else{
-		insert_data(db,ipv6_addr_dst,dst_port,src_port,s,6,proto);
+		insert_data(db,ipv6_addr_dst,role_dst,src_port,s,6,proto);
 	}
 	if(p == 'y' || p == 'Y'){
 		printf("%s ----> %s \n",ipv6_addr_src,ipv6_addr_dst);
@@ -274,6 +277,7 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 			tcp_hdr_v6 = (struct rte_tcp_hdr *)((char *)ipv6_hdr + l3_len);
 			port_src = tcp_hdr_v6->src_port;
 			port_dst = tcp_hdr_v6->dst_port;
+			tcp_flag = tcp_hdr_v6->tcp_flags;
 			sprintf(protocol_msg,"\t--> next protocol: TCP\n");
 			break;
 		case 0x11:
@@ -291,7 +295,7 @@ print_decode_packet(struct rte_mbuf *m,char p,uint32_t siz,sqlite3 *db)
 		default:
 			break;
 		}
-		decode_ipv6(ipv6_hdr->src_addr,ipv6_hdr->dst_addr,port_src,port_dst,siz,p,db,ipv6_hdr->proto);
+		decode_ipv6(ipv6_hdr->src_addr,ipv6_hdr->dst_addr,port_src,port_dst,siz,p,db,ipv6_hdr->proto,tcp_flag);
 		break;
 	default:
 		toggle_print = 0;

@@ -123,8 +123,8 @@ void conclude_stat(sqlite3 *db,char *target){
 void update_data(sqlite3 *db,char *data,int target,uint32_t pkt_size,uint16_t port,int l4_pro){
    char com[200];
    com[0] = 0;
-   sprintf(com,"update ip_stat set count = count + 1.0,sum_tot_size = sum_tot_size + %d where ip_addr = '%s' and port = %d and end_point = %d and l4_pro = %d"
-            ,pkt_size,data,port,target,l4_pro);
+   sprintf(com,"update ip_stat set count = count + 1.0,sum_tot_size = sum_tot_size + %d where ip_addr = '%s' and port = %d and l4_pro = %d"
+            ,pkt_size,data,port,l4_pro);
    int stat;
    char *err = 0;
    stat = sqlite3_exec(db,com,callback_printdata,0,&err);
@@ -140,7 +140,7 @@ int data_choice(sqlite3 *db,char *ip,int target,uint16_t port,int l4_pro){
    const char sqlcom[200];
    int stat;
    char *err = 0;
-   sprintf(sqlcom,"select count(*) from ip_stat where ip_addr = '%s' and port = %d and end_point = %d and l4_pro =%d",ip,port,target,l4_pro);
+   sprintf(sqlcom,"select count(*) from ip_stat where ip_addr = '%s' and port = %d and l4_pro =%d",ip,port,l4_pro);
    stat = sqlite3_exec(db,sqlcom,fetch_data,0,&err);
    if (stat != SQLITE_OK)
    {
